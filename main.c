@@ -7,8 +7,8 @@ void cb (char* msg){
 int main(){
     // test_sent("My brain blew up");
     pthread_t tid;
-    void (*callback) (char*) = cb;
-    tid = init_socket(cb);
+    Callback cb_func = cb;
+    tid = init_socket(cb_func);
     printf("back to main\n");
     test_sent("============================================");
     test_sent("----------------------------------------------");

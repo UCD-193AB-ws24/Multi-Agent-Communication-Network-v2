@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+typedef void (*Callback) (char*);
+
 int test_sent(char* msg);  /* An example function declaration */
 // int init_socket();
 pthread_t init_socket(void(*callback) (char*));

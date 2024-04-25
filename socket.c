@@ -6,7 +6,7 @@
 #define BACKLOG 100
 
 struct listen_thread_arg{
-    void (*callback)(char*);
+    Callback cb;
     char* argument;
     int server_fd;
 };
@@ -16,6 +16,7 @@ void *listen_thread_func (void* in_args){
     struct listen_thread_arg *args= (struct listen_thread_arg*) in_args;
     int server_fd = args->server_fd;
     char* argument = args->argument;
+    Callback callback_func = args->cb;
     int client_fd;
 
     // Listen for incoming connections
@@ -50,7 +51,7 @@ void *listen_thread_func (void* in_args){
         char *response = "Hello from server!";
         send(client_fd, response, strlen(response), 0);
         printf("Response sent to client.\n");
-        args->callback("hi");
+        callback_func("hello from callback");
         // test_sent("thread sent");
 
     }
@@ -58,14 +59,13 @@ void *listen_thread_func (void* in_args){
     close(client_fd);
 }
 
-pthread_t init_socket(void(*callback)(char*)){ //return server_fd so it can be closed later
+pthread_t init_socket( Callback cb){ //return server_fd so it can be closed later
     int server_fd;
     struct sockaddr_in server_addr;
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
-    
     // Prepare server address
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
@@ -80,11 +80,11 @@ pthread_t init_socket(void(*callback)(char*)){ //return server_fd so it can be c
     
     // spawn a thread here
     pthread_t tid;
-    struct listen_thread_arg args;
-    args.callback = callback;
-    args.server_fd = server_fd;
-    args.argument = "Callback Called\n";
-    pthread_create(&tid, NULL, listen_thread_func, (void*)&args);
+    struct listen_thread_arg* args = (struct listen_thread_arg*)malloc(sizeof(struct listen_thread_arg));
+    args->cb = cb;
+    args->server_fd = server_fd;
+    args->argument = "Callback Called\n";
+    pthread_create(&tid, NULL, listen_thread_func, (void*)args);
     
     // need to close client_fd outside
     return tid;
