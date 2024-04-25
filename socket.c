@@ -51,7 +51,7 @@ void *listen_thread_func (void* in_args){
         char *response = "Hello from server!";
         send(client_fd, response, strlen(response), 0);
         printf("Response sent to client.\n");
-        callback_func("hello from callback");
+        callback_func(argument);
         // test_sent("thread sent");
 
     }
