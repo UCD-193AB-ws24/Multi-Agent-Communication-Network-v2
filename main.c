@@ -6,12 +6,13 @@ void cb (char* msg){
 
 int main(){
     // test_sent("My brain blew up");
-    pthread_t tid;
+    // struct init_socket_return_type init;
     Callback cb_func = cb;
+    pthread_t tid;
     tid = init_socket(cb_func);
     printf("back to main\n");
     test_sent("============================================");
-    test_sent("----------------------------------------------");
+    // test_sent("----------------------------------------------");
     if (pthread_join(tid, NULL) != 0) {
         perror("pthread_join");
         return 1;

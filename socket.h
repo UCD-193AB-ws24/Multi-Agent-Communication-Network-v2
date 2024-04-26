@@ -8,8 +8,12 @@
 
 typedef void (*Callback) (char*);
 
+// struct init_socket_return_type{
+//     int client_fd;
+//     pthread_t tid;
+// };
+
 int test_sent(char* msg);  /* An example function declaration */
-// int init_socket();
 pthread_t init_socket(void(*callback) (char*));
 void *listen_thread_func (void* in_args);
 void callback_sent (char* msg);
