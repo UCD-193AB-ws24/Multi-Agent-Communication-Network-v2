@@ -9,6 +9,7 @@ void cb (char* msg){
     strcpy(msg+length, "-confirmd recived");
 
     printf(" - for testing, send message back [%s]\n", msg);
+    sleep(1);
     socket_sent(msg, strlen(msg));
 }
 

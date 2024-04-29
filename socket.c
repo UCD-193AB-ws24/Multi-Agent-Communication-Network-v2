@@ -26,7 +26,9 @@ void *listen_thread_func (void* in_args){
         char buffer[BUFFER_SIZE] = {0};
         // Receive data from client
         if (read(socket_fd, buffer, BUFFER_SIZE) == -1){
-            printf("failed\n");
+            printf("No Data Readed\n");
+            sleep(0.1);
+            continue;
         }
 
         printf("Recive socket message: %s\n", buffer);
@@ -68,7 +70,7 @@ int socket_sent(char* message, size_t length) {
     // Send data to server
     // send(send_socket_fd, message, length, MSG_DONTWAIT);
     int byte_sent = send(send_socket_fd, message, length, 0);
-    printf("Message sent to server.\n");
+    printf("Message sent to server. -------------\n");
     
     // close(send_socket_fd);
     return byte_sent;
@@ -77,23 +79,27 @@ int socket_sent(char* message, size_t length) {
 void connect_socket(int *socket_fd) {
     int new_socket_fd;
     struct sockaddr_in server_addr;
+    *socket_fd = -1; // -1 indicating fail to finish connection
     if ((new_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("socket creation failed");
-        exit(EXIT_FAILURE);
+        perror("socket creation failed\n");
+        return;
     }
     
     // Prepare server address
-    memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(SERVER_PORT);
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr ) == -1) {
+        printf("Invalid address\n");
+        return;
+    }
 
     *socket_fd = -1;
     // connect network server
     fprintf(stderr, "try to conenct\n");
     if (connect(new_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
-        perror("connection failed");
-        exit(EXIT_FAILURE);
+        perror("connection failed\n");
+        return;
     }
     
     *socket_fd = new_socket_fd;
