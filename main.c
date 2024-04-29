@@ -3,12 +3,12 @@
 
 void cb (char* msg){
     printf("Trigered callback\n");
-    printf(" - will process [%s]\n", buffer);
+    printf(" - will process [%s]\n", msg);
 
     size_t length = strlen(msg);
     strcpy(msg+length, "-confirmd recived");
 
-    printf(" - for testing, send message back [%s]\n", buffer);
+    printf(" - for testing, send message back [%s]\n", msg);
     socket_sent(msg, strlen(msg));
 }
 

@@ -1,8 +1,8 @@
 #include "socket.h"
 
-#define PORT 60001
-#define SERVER_PORT 60000
-#define SERVER_IP "0.0.0.0"
+#define PORT 6001
+#define SERVER_PORT 5001
+#define SERVER_IP "localhost"
 #define BACKLOG 100
 #define BUFFER_SIZE 1024
 
@@ -59,7 +59,7 @@ int socket_sent(char* message, size_t length) {
     static int send_socket_fd = -1;
     static struct sockaddr_in server_addr;
 
-    if (socket_fd == -1) {
+    if (send_socket_fd == -1) {
         printf("Send socket connected to server\n");
         connect_socket(&send_socket_fd);
     }
@@ -75,9 +75,9 @@ int socket_sent(char* message, size_t length) {
 }
 
 void connect_socket(int *socket_fd) {
-    int socket_fd;
+    int new_socket_fd;
     struct sockaddr_in server_addr;
-    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    if ((new_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
@@ -90,10 +90,11 @@ void connect_socket(int *socket_fd) {
 
     *socket_fd = -1;
     // connect network server
-    if (connect(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+    fprintf(stderr, "try to conenct\n");
+    if (connect(new_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         perror("connection failed");
         exit(EXIT_FAILURE);
     }
     
-    *socket_fd = socket_fd;
+    *socket_fd = new_socket_fd;
 }
