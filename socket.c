@@ -26,8 +26,8 @@ void *listen_thread_func (void* in_args){
         char buffer[BUFFER_SIZE] = {0};
         // Receive data from client
         if (read(socket_fd, buffer, BUFFER_SIZE) == -1){
-            printf("No Data Readed\n");
-            sleep(0.1);
+            printf("No Data Readed...\n");
+            sleep(1);
             continue;
         }
 
@@ -41,6 +41,8 @@ void *listen_thread_func (void* in_args){
 pthread_t init_socket( Callback cb){ //return socket_fd so it can be closed later
     int socket_fd;
     connect_socket(&socket_fd);
+    printf("Read socket connected to server\n");
+    socket_sent("[INIT]", 6);
 
     // spawn a thread
     pthread_t tid;
@@ -61,15 +63,15 @@ int socket_sent(char* message, size_t length) {
     static struct sockaddr_in server_addr;
 
     if (send_socket_fd == -1) {
-        printf("Send socket connected to server\n");
         connect_socket(&send_socket_fd);
+        printf("Send socket connected to server\n");
     }
     
     
     // Send data to server
     // send(send_socket_fd, message, length, MSG_DONTWAIT);
     int byte_sent = send(send_socket_fd, message, length, 0);
-    printf("- Message sent to server [%s]\n", message);
+    printf("- Message sent to server [%s], byte: %d\n", message, byte_sent);
     
     // close(send_socket_fd);
     return byte_sent;
@@ -101,5 +103,6 @@ void connect_socket(int *socket_fd) {
         return;
     }
     
+    fprintf(stderr, "conencted\n");
     *socket_fd = new_socket_fd;
 }
