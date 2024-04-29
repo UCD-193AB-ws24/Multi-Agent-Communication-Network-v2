@@ -16,5 +16,4 @@ typedef void (*Callback) (char*);
 int test_sent(char* msg);  /* An example function declaration */
 pthread_t init_socket(void(*callback) (char*));
 void *listen_thread_func (void* in_args);
-void callback_sent (char* msg);
 
