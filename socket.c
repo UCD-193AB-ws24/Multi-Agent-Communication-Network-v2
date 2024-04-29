@@ -31,7 +31,6 @@ void *listen_thread_func (void* in_args){
             continue;
         }
 
-        printf("Recive socket message: %s\n", buffer);
         callback_func(buffer);
     }
 
@@ -70,7 +69,7 @@ int socket_sent(char* message, size_t length) {
     // Send data to server
     // send(send_socket_fd, message, length, MSG_DONTWAIT);
     int byte_sent = send(send_socket_fd, message, length, 0);
-    printf("Message sent to server. -------------\n");
+    printf("- Message sent to server [%s]\n", message);
     
     // close(send_socket_fd);
     return byte_sent;

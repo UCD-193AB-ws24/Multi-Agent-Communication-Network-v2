@@ -3,13 +3,13 @@
 
 void cb (char* msg){
     printf("Trigered callback\n");
-    printf(" - will process [%s]\n", msg);
+    printf(" - Recive socket message: [%s]\n", msg);
 
     size_t length = strlen(msg);
-    strcpy(msg+length, "-confirmd recived");
+    strcpy(msg, "[---]");
+    strcpy(msg+length, " - confirmd recived");
 
     printf(" - for testing, send message back [%s]\n", msg);
-    sleep(1);
     socket_sent(msg, strlen(msg));
 }
 
@@ -20,10 +20,14 @@ int main(){
     pthread_t tid;
     tid = init_socket(cb_func);
     printf("finished socket init\n");
-    
+    char* buffer = (char* ) malloc(1024*sizeof(char));
+
+
+    strcpy(buffer, "[GET] GPS Data");
 
     while (1) {
-        printf("main running...\n");
+        printf("main request data\n");
+        socket_sent(buffer, strlen(buffer));
         sleep(1);
     }
 
