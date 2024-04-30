@@ -28,7 +28,7 @@ int main(){
     while (1) {
         printf("main request data\n");
         socket_sent(buffer, strlen(buffer));
-        sleep(1);
+        sleep(7);
     }
 
     // wait for thread to finish

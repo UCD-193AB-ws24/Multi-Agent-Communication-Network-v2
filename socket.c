@@ -69,7 +69,7 @@ int socket_sent(char* message, size_t length) {
     // Send data to server
     // send(send_socket_fd, message, length, MSG_DONTWAIT);
     int byte_sent = send(send_socket_fd, message, length, 0);
-    printf("- Message sent to server [%s]\n", message);
+    printf("- Message sent to server [%s] %d\n", message, byte_sent);
     
     // close(send_socket_fd);
     return byte_sent;
