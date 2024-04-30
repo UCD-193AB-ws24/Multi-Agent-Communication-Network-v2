@@ -1,122 +1,108 @@
 #include "socket.h"
 
-#define PORT 60001
-#define SERVER_PORT 60000
-#define SERVER_IP "0.0.0.0"
+#define PORT 6001
+#define SERVER_PORT 5001
+#define SERVER_IP "localhost"
 #define BACKLOG 100
 #define BUFFER_SIZE 1024
 
 struct listen_thread_arg{
     Callback cb;
-    char* argument;
-    int client_fd;
+    int socket_fd;
 };
 
 void *listen_thread_func (void* in_args){
     //unpack thread argument
     struct listen_thread_arg *args= (struct listen_thread_arg*) in_args;
-    int client_fd = args->client_fd;
-    char* argument = args->argument;
+    int socket_fd = args->socket_fd;
     Callback callback_func = args->cb;
 
-    printf("Server listening on port %d...\n", PORT);
+    printf("Listening on port %d...\n", PORT);
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
 
     
     while(1){        
-        char buffer[1024] = {0};
+        char buffer[BUFFER_SIZE] = {0};
         // Receive data from client
-        if (read(client_fd, buffer, 1024) == -1){
-            printf("failed\n");
+        if (read(socket_fd, buffer, BUFFER_SIZE) == -1){
+            printf("No Data Readed...\n");
+            sleep(1);
+            continue;
         }
 
-        if(buffer[0] == 0){
-            printf("buffer empty\n");
-            break;
-        }
-        printf("Client message: %s\n", buffer);
-        
-        // Send response to client
-        // char *response = "Hello from server!";
-        // send(client_fd, response, strlen(response), 0);
-        printf("Response sent to client.\n");
-        callback_func(argument);
-        test_sent("thread sent");
-
+        callback_func(buffer);
     }
-    // Close sockets
-    close(client_fd);
+
+    // // Close sockets
+    // close(socket_fd);
 }
 
-pthread_t init_socket( Callback cb){ //return client_fd so it can be closed later
-    int client_fd;
-    struct sockaddr_in server_addr;
-    if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("socket creation failed");
-        exit(EXIT_FAILURE);
-    }
-    // Prepare server address
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(SERVER_PORT);
+pthread_t init_socket( Callback cb){ //return socket_fd so it can be closed later
+    int socket_fd;
+    connect_socket(&socket_fd);
+    printf("Read socket connected to server\n");
+    socket_sent("[INIT]", 6);
 
-    if (connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
-        perror("connection failed");
-        exit(EXIT_FAILURE);
-    }
-    
-    // spawn a thread here
+    // spawn a thread
     pthread_t tid;
     struct listen_thread_arg* args = (struct listen_thread_arg*)malloc(sizeof(struct listen_thread_arg));
     args->cb = cb;
-    args->client_fd = client_fd;
-    args->argument = "Callback Called\n";
+    args->socket_fd = socket_fd;
     pthread_create(&tid, NULL, listen_thread_func, (void*)args);
     
-    // need to close client_fd outside
+    // need to close socket_fd outside
     // struct  init_socket_return_type ret;
-    // ret.client_fd =client_fd;
+    // ret.socket_fd =socket_fd;
     // ret.tid = tid;
     return tid;
 }
 
-int test_sent(char* message) {
-    int client_fd;
-    struct sockaddr_in server_addr;
-    char buffer[1024] = {0};
-    // char *message = "Hello from client!";
+int socket_sent(char* message, size_t length) {
+    static int send_socket_fd = -1;
+    static struct sockaddr_in server_addr;
+
+    if (send_socket_fd == -1) {
+        connect_socket(&send_socket_fd);
+        printf("Send socket connected to server\n");
+    }
     
-    // Create socket
-    if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("socket creation failed");
-        exit(EXIT_FAILURE);
+    
+    // Send data to server
+    // send(send_socket_fd, message, length, MSG_DONTWAIT);
+    int byte_sent = send(send_socket_fd, message, length, 0);
+    printf("- Message sent to server [%s], byte: %d\n", message, byte_sent);
+    
+    // close(send_socket_fd);
+    return byte_sent;
+}
+
+void connect_socket(int *socket_fd) {
+    int new_socket_fd;
+    struct sockaddr_in server_addr;
+    *socket_fd = -1; // -1 indicating fail to finish connection
+    if ((new_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("socket creation failed\n");
+        return;
     }
     
     // Prepare server address
-    memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
-    
-    // Convert IP address from string to binary
-    if (inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr) == -1) {
-        perror("invalid address");
-        exit(EXIT_FAILURE);
+    server_addr.sin_port = htons(SERVER_PORT);
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr ) == -1) {
+        printf("Invalid address\n");
+        return;
+    }
+
+    *socket_fd = -1;
+    // connect network server
+    fprintf(stderr, "try to conenct\n");
+    if (connect(new_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+        perror("connection failed\n");
+        return;
     }
     
-    // Connect to server
-    if (connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
-        perror("connection failed");
-        exit(EXIT_FAILURE);
-    }
-    
-    printf("Connected to server.\n");
-    
-    // Send data to server
-    send(client_fd, message, strlen(message), 0);
-    printf("Message sent to server.\n");
-    close(client_fd);
-    
-    return 0;
+    fprintf(stderr, "conencted\n");
+    *socket_fd = new_socket_fd;
 }
