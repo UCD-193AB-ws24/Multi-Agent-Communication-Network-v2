@@ -27,7 +27,7 @@ void *listen_thread_func (void* in_args){
         // Receive data from client
         if (read(socket_fd, buffer, BUFFER_SIZE) == -1){
             printf("No Data Readed\n");
-            sleep(0.1);
+            sleep(1);
             continue;
         }
 
