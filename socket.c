@@ -24,11 +24,17 @@ void *listen_thread_func (void* in_args){
     
     while(1){        
         char buffer[BUFFER_SIZE] = {0};
+        ssize_t byte_read = 0;
         // Receive data from client
-        if (read(socket_fd, buffer, BUFFER_SIZE) == -1){
-            printf("No Data Readed...\n");
+        byte_read = read(socket_fd, buffer, BUFFER_SIZE);
+        if (byte_read == 0){
+            printf("Connection closed...\n");
             sleep(1);
-            continue;
+            break;;
+        } else if (byte_read == -1) {
+            printf("Connection error..\n");
+            sleep(1);
+            break;;
         }
 
         callback_func(buffer);
@@ -38,7 +44,7 @@ void *listen_thread_func (void* in_args){
     // close(socket_fd);
 }
 
-pthread_t init_socket( Callback cb){ //return socket_fd so it can be closed later
+pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
     int socket_fd;
     connect_socket(&socket_fd);
     printf("Read socket connected to server\n");
@@ -77,32 +83,89 @@ int socket_sent(char* message, size_t length) {
     return byte_sent;
 }
 
-void connect_socket(int *socket_fd) {
+
+int socket_sent(char* message, size_t length, char* response_buffer, size_t buffer_len) {
+    int socket_fd = -1;
+
+    connect_socket(&socket_fd);
+    printf("- Send socket connected to server\n");
+    
+    // Send data to server
+    // send(socket_fd, message, length, MSG_DONTWAIT);
+    int byte_sent = send(socket_fd, message, length, 0);
+    printf("=> Message sent to server [%s]\n", message);
+
+    // ==== timeout for response ====
+    struct timeval timeout;
+    timeout.tv_sec = 5;  // 5 seconds timeout
+    timeout.tv_usec = 0;
+
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(socket_fd, &readfds); // Add socket_fd to the monitor set
+
+    int ready = select(socket_fd + 1, &readfds, NULL, NULL, &timeout);
+    printf("- wating on response...\n");
+     if (ready == -1) {
+        perror("Select error");
+        exit(EXIT_FAILURE);
+    } else if (ready == 0) {
+        printf("Timeout occurred\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Check if sockfd is ready for reading
+        // Data is available for reading
+    int bytes_received = recv(socket_fd, response_buffer, buffer_len, 0);
+    if (bytes_received == -1) {
+        perror("Receive error");
+        exit(EXIT_FAILURE);
+    } else if (bytes_received == 0) {
+        printf("Connection closed from server\n");
+        exit(EXIT_SUCCESS);
+    } else {
+        // Data received successfully
+        printf("<= Received %d bytes: %s\n", bytes_received, response_buffer);
+    }
+    
+    close(socket_fd);
+    return 1; // for success
+}
+
+int connect_socket(int *socket_fd) {
+    static struct sockaddr_in server_addr;
+    static int server_addr_initialized = -1;
     int new_socket_fd;
-    struct sockaddr_in server_addr;
+    
+    if (server_addr_initialized == -1) {
+        // Prepare server address
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(SERVER_PORT);
+        // Convert IPv4 and IPv6 addresses from text to binary form
+        if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr ) == -1) {
+            printf("Invalid server address\n");
+            return -1;
+        }
+        server_addr_initialized = 1;
+    }
+        
+
     *socket_fd = -1; // -1 indicating fail to finish connection
     if ((new_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket creation failed\n");
-        return;
+        return -1;
     }
     
-    // Prepare server address
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(SERVER_PORT);
-    // Convert IPv4 and IPv6 addresses from text to binary form
-    if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr ) == -1) {
-        printf("Invalid address\n");
-        return;
-    }
 
     *socket_fd = -1;
     // connect network server
     fprintf(stderr, "try to conenct\n");
     if (connect(new_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         perror("connection failed\n");
-        return;
+        return -1;
     }
     
     fprintf(stderr, "conencted\n");
     *socket_fd = new_socket_fd;
+    return 0;
 }
