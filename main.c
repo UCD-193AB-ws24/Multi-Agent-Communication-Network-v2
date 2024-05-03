@@ -9,8 +9,8 @@ void cb (char* msg){
     strcpy(msg, "[---]");
     strcpy(msg+length, " - confirmd recived");
 
-    printf(" - for testing, send message back [%s]\n", msg);
-    socket_sent(msg, strlen(msg));
+    // printf(" - for testing, send message back [%s]\n", msg);
+    // socket_sent(msg, strlen(msg));
 }
 
 int main(){
@@ -20,14 +20,17 @@ int main(){
     pthread_t tid;
     tid = init_socket(cb_func);
     printf("finished socket init\n");
-    char* buffer = (char* ) malloc(1024*sizeof(char));
+    char* msg_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
+    char* response_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
 
 
-    strcpy(buffer, "[GET] GPS Data");
+    strcpy(msg_buffer, "[GET]-Test Message GPS Data");
 
     while (1) {
-        printf("main request data\n");
-        socket_sent(buffer, strlen(buffer));
+        printf("=> C-API request \"%s\" sent\n", msg_buffer);
+        int error_flag = socket_sent(msg_buffer, strlen(msg_buffer), response_buffer, BUFFER_SIZE);
+        printf("<= Server response\"%s\" recived\n", response_buffer);
+        
         sleep(7);
     }
 

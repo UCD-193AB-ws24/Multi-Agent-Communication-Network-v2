@@ -1,11 +1,5 @@
 #include "socket.h"
 
-#define PORT 6001
-#define SERVER_PORT 5001
-#define SERVER_IP "localhost"
-#define BACKLOG 100
-#define BUFFER_SIZE 1024
-
 struct listen_thread_arg{
     Callback cb;
     int socket_fd;
@@ -48,7 +42,7 @@ pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
     int socket_fd;
     connect_socket(&socket_fd);
     printf("Read socket connected to server\n");
-    socket_sent("[INIT]", 6);
+    // socket_sent("[INIT]", 6); // TB Finish, send message to confirm this is the C-API listen socekt
 
     // spawn a thread
     pthread_t tid;
@@ -64,24 +58,24 @@ pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
     return tid;
 }
 
-int socket_sent(char* message, size_t length) {
-    static int send_socket_fd = -1;
-    static struct sockaddr_in server_addr;
+// int socket_sent(char* message, size_t length) {
+//     static int send_socket_fd = -1;
+//     static struct sockaddr_in server_addr;
 
-    if (send_socket_fd == -1) {
-        connect_socket(&send_socket_fd);
-        printf("Send socket connected to server\n");
-    }
+//     if (send_socket_fd == -1) {
+//         connect_socket(&send_socket_fd);
+//         printf("Send socket connected to server\n");
+//     }
     
     
-    // Send data to server
-    // send(send_socket_fd, message, length, MSG_DONTWAIT);
-    int byte_sent = send(send_socket_fd, message, length, 0);
-    printf("- Message sent to server [%s]\n", message);
+//     // Send data to server
+//     // send(send_socket_fd, message, length, MSG_DONTWAIT);
+//     int byte_sent = send(send_socket_fd, message, length, 0);
+//     printf("- Message sent to server [%s]\n", message);
     
-    // close(send_socket_fd);
-    return byte_sent;
-}
+//     // close(send_socket_fd);
+//     return byte_sent;
+// }
 
 
 int socket_sent(char* message, size_t length, char* response_buffer, size_t buffer_len) {

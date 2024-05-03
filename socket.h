@@ -8,6 +8,11 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#define PORT 6001
+#define SERVER_PORT 5001
+#define SERVER_IP "localhost"
+#define BACKLOG 100
+#define BUFFER_SIZE 1024
 
 typedef void (*Callback) (char*);
 
@@ -16,7 +21,7 @@ typedef void (*Callback) (char*);
 //     pthread_t tid;
 // };
 
-int socket_sent(char* msg, size_t length);  /* An example function declaration */
+int socket_sent(char* message, size_t length, char* response_buffer, size_t buffer_len) ;  /* An example function declaration */
 pthread_t init_socket(void(*callback) (char*));
 void *listen_thread_func (void* in_args);
-void connect_socket(int *socket_fd);
+int connect_socket(int *socket_fd);
