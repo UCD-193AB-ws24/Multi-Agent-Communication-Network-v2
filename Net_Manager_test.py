@@ -100,6 +100,7 @@ class Uart_Task_Manager:
 import socket
 import threading
 import time
+import select
 from datetime import datetime
 
 class Socket_Manager():
@@ -113,6 +114,7 @@ class Socket_Manager():
         self.read_address = None
         self.socket = None
         self.callback_func = None
+        self.is_thread_alive = False
         
         self.initialize_socket()
     
@@ -121,7 +123,7 @@ class Socket_Manager():
         tcp_socket.bind(('localhost', self.socket_port))
         # tcp_socket.settimeout(None)  # dont timeout when waiting for response
         
-        print("udp port binded to port", self.socket_port) 
+        print("tcp port binded to port", self.socket_port) 
         self.socket = tcp_socket
         self.accept_connection()
     
@@ -141,6 +143,7 @@ class Socket_Manager():
         self.read_socket = read_socket
         self.read_address = read_address
         print(f"Connected with send:{send_address} read:{read_address}")
+        return 0
     
     def send_data(self, data):
         if self.send_socket != None:
@@ -176,10 +179,12 @@ class Socket_Manager():
         
 
     def socket_listening_thread(self):
+        self.is_thread_alive = True
         print("=== Enter socket listening thread === ")
         # listen to socket
         while True:
-            if self.read_socket != None:
+            ready_to_read, _, _ = select.select([self.read_socket], [], [], 0)
+            if ready_to_read == True:
                 try:
                     data = self.read_socket.recv(PACKET_SIZE)
                     if(len(data) > 0):
@@ -189,9 +194,13 @@ class Socket_Manager():
                 except socket.timeout:
                     print("timeout happened, no message back")
             else:
+                print("need to reconnect")
                 # try reconnect --------------------------------------------------------------------------
                 # TB Finish
                 time.sleep(1)
+                # TB REVIEW
+                self.is_thread_alive = False
+                return 
                 
     def run(self):
         print("Starting socket thread")
@@ -256,7 +265,7 @@ class Node:
 shared_node_list = []
 
 class Network_Manager():
-    def __init__(self):
+    def __init__(self,socket_manager, uart_manager):
         # Node list data struct
         # pull the node list from esp_module
         # create data structures
@@ -264,6 +273,8 @@ class Network_Manager():
         self.node_list = shared_node_list
         self.socket_sent = None
         self.uart_sent = None
+        self.socket_manager = socket_manager
+        self.uart_manager = uart_manager
     
     
     def add_nodes(self, name, address, uuid):
@@ -274,6 +285,12 @@ class Network_Manager():
         print("Net Manager start running")
         while True:
             # print("Net Manager still running...")
+            
+            #TB Review have a while loop that checks for disconnected threads and relaunches them
+            if(self.socket_manager.is_thread_alive == False):
+                print("Relaunching socket listening thread")
+                if(self.socket_manager.accept_connection()):
+                    self.socket_manager.run()
             time.sleep(1)
             
     def attack_callback(self, socket_sent, uart_sent):
@@ -289,7 +306,17 @@ class Network_Manager():
             print("  - pass message to uart")
             self.uart_sent(message.encode())
         # testing code -----------------------
-            
+    
+    # for testing without uart
+    def callback_socket_no_uart(self, data):
+        print(f"[NetM] Triger callback from socket thread: {data}")
+        # testing code -----------------------
+        message = data.decode('utf-8')
+        if "[GET]" in message:
+            message = "[RES] python server received your message"
+            print("  -from socket thread: send client message back")
+            self.socket_sent(message.encode())
+        
         
     def callback_uart(self, data):
         print(f"[NetM] Triger callback from uart thread: {data}")
@@ -315,8 +342,12 @@ def main():
     # Do locks sync for the shared vairable (serial_connection, socket)
     uart_manager = Uart_Task_Manager(port, baud_rate)
     socket_manager = Socket_Manager(socket_port)
-    net_manager = Network_Manager()
-    socket_manager.attack_callback(net_manager.callback_socket)
+    # change the net_manager to contain uart_manager and socket_manager instance so it can relunch therad
+    net_manager = Network_Manager(socket_manager, uart_manager)
+    # socket_manager.attack_callback(net_manager.callback_socket)
+    # just for testing client - python server communication
+    socket_manager.attack_callback(net_manager.callback_socket_no_uart)
+    
     uart_manager.attack_callback(net_manager.callback_uart)
     net_manager.attack_callback(socket_manager.send_data, uart_manager.sent_data)
     

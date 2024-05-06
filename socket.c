@@ -33,9 +33,9 @@ void *listen_thread_func (void* in_args){
 
         callback_func(buffer);
     }
-
     // // Close sockets
     // close(socket_fd);
+    return NULL;
 }
 
 pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
@@ -105,6 +105,7 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
         exit(EXIT_FAILURE);
     } else if (ready == 0) {
         printf("Timeout occurred\n");
+        close(socket_fd);
         exit(EXIT_FAILURE);
     }
 
