@@ -32,28 +32,29 @@ class Uart_Task_Manager:
             self.serial_connection = serial.Serial(self.uart_port, self.uart_baud_rate)
             print("connected to serial port", self.uart_port)
         except:
-            print("unable to connect to serial port", self.uart_port)
+            #comment out print
+            return
+            # print("unable to connect to serial port", self.uart_port)
         
         
     def uart_event_handler(self, data):
-        print(f"recived uart data: {data}")
-
-        try:
-            data_str = data.decode().strip()
-            print(">", data_str)
-        except:
-            print(" - uart_data can't parse to string")
-
+        # print("recived uart data:")
+        self.callback_func(data)
+        
+        # try:
+        #     data_str = data.decode().strip()
+        #     print(">", data_str)
+        # except:
+        #     print(" - uart_data can't parse to string")
         # need uart protocal here =========================================================
         # TB Finish
-        #         try:
-        #             msg_type = data[:5].decode().strip()
+        # try:
+        #     msg_type = data[:5].decode().strip()
 
-        #             if (msg_type == "[CMD]"):
-        #                 command_handler(data)
-        #         except:
-        #             print(" - Unable to retrive message_-type")
-        
+        #     if (msg_type == "[CMD]"):
+        #         command_handler(data)
+        # except:
+        #     print(" - Unable to retrive message_-type")
     
     # for uart protocal
     def uart_decoder(self):
@@ -66,7 +67,6 @@ class Uart_Task_Manager:
         pass
     
     def sent_data(self, data):
-        print(f"[UART] send data {data}")
         self.serial_connection.write(data)
     
     def attack_callback(self, callback_func):
@@ -76,19 +76,29 @@ class Uart_Task_Manager:
     def uart_listening_thread(self):
         print("=== Enter uart listening thread === ")
         # listen to urat port
+        
+        # ------------------------------ temparary removal for testing with only socket client and python server
+        # self.sent_data("[LOGOF]--".encode())
+        #----------------------------------
         while True:
             if self.serial_connection != None:
-                if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
-                    try:
+                try:
+                    if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
                         data = self.serial_connection.readline()  # Read and decode the data
                         self.uart_event_handler(data)
-                    except:
-                        # fail to read line
-                        pass
+                except serial.SerialException as e:
+                    print(f"Serial communication error: {e}")
+                    # self.serial_connection = None
+                except:
+                    # fail to read line
+                    pass
             else:
                 # print("uart thread running")
                 # time.sleep(0.1)
                 # self.callback_func("hello from uart") # testing callback--------------------------------
+
+                # print("try to reconnect") # comment out for testing client-server without uart
+                self.uart_connect()
                 time.sleep(1)
     
     def run(self):
@@ -100,114 +110,94 @@ class Uart_Task_Manager:
 import socket
 import threading
 import time
-import select
 from datetime import datetime
 
 class Socket_Manager():
-    def __init__(self, socket_port):
-        self.PACKET_SIZE = 1024
-        self.socket_port = socket_port
-        self.socket_thread = None
+    def __init__(self, server_listen_port, PACKET_SIZE):
+        self.PACKET_SIZE = PACKET_SIZE
+        self.server_listen_port = server_listen_port
+        self.server_socket = None
+        self.server_listen_thread = None
         self.send_socket = None
         self.send_address = None
-        self.read_socket = None
-        self.read_address = None
-        self.socket = None
         self.callback_func = None
-        self.is_thread_alive = False
         
         self.initialize_socket()
     
     def initialize_socket(self):
-        tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tcp_socket.bind(('localhost', self.socket_port))
-        # tcp_socket.settimeout(None)  # dont timeout when waiting for response
-        
-        print("tcp port binded to port", self.socket_port) 
-        self.socket = tcp_socket
-        self.accept_connection()
-    
-    def accept_connection(self):
-        self.socket.listen(2) # 2 space in queue is enough
-        
-        print(f"Listening on 'localhost':{self.socket_port} for connection")
-        send_socket, send_address = self.socket.accept()
-        read_socket, read_address = self.socket.accept()
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind(('localhost', self.server_listen_port))
+        self.server_socket.settimeout(None)  # accept_connectiondont timeout when waiting for response
+                    
+    def run(self):
+        print("Starting socket thread")
+        self.socket_thread = threading.Thread(target=self.server_listening_thread, args=(), daemon=True)
+        self.socket_thread.start()
+        print("Started socket thread")
+
+                
+    def connect_send_socket(self):
+        self.server_socket.listen(1) # 1 space in queue is enough
+        send_socket, send_address = self.server_socket.accept()
         
         # ====== inital extra handshake to confim it belong to our project =======
+        # ====== verify is a send_socket (C_API's listen socket) =======
         # TB Finish
         # ====== end of confirmation
         self.send_socket = send_socket
         self.send_address = send_address
-        
-        self.read_socket = read_socket
-        self.read_address = read_address
-        print(f"Connected with send:{send_address} read:{read_address}")
-        return 0
+        print(f"Connected with send:{send_address}")
+
     
+    def server_listening_thread(self):
+        print("=== Enter socket (server) listening thread === ")
+        # connect send_socket
+        self.connect_send_socket()
+        
+        # listen to socket sonnection for C-API data/message request
+        self.server_socket.listen(5)
+        print(f"Listening on 'localhost':{self.server_listen_port} for C-API socket connection")
+        while True:
+            client_socket, address = self.server_socket.accept()
+            print(f" - Request connection from C-API in {address} has been established.")
+            
+            request_handler_thread = threading.Thread(target=self.socket_handler, args=(client_socket,))
+            request_handler_thread.start()
+
+
+    def socket_handler(self, client_socket):
+        print("Starting new C-API socket request thread")
+
+        # read the request from C-API from socket
+        data = client_socket.recv(self.PACKET_SIZE)
+        # print("Received Request:", data.decode())
+
+        # pass data to Net_Manager's function to handler and return the response
+        response_bytes = self.callback_func(data)
+        
+        client_socket.send(response_bytes)
+        client_socket.close()
+        
+    # def task_handler(self, message):
+    #     # decode message, execute this task
+    #     # TB Finish
+    #     pass
+    
+    def attack_callback(self, callback_func):
+        self.callback_func = callback_func
+        print(f"[Socket] Successfully attached callback function, {type(self.callback_func)}")
+        
+    
+# ---------------------- fixing ----------------------------
+    
+        
     def send_data(self, data):
         if self.send_socket != None:
             # socket.sento(bytes, addr)
             self.send_socket.sendall(data)
         else:
             print("No socket connected")
-    
-    def socket_handler(self, data):
-        print("recived data from socket:")
-        # need to split the recived data into corresponding messages ---------------------------------------------
-        # all the data sended from client in a short period of time will be read at once
-        # define sepcial "END_OF_Message" pattern to split it
-        # call task_handler after split message
-        # TB Finish
-        print(f"recived \"{data.decode('utf-8')}\"")
-        try:
-            message = data.decode('utf-8')
-            if "[GET]" in message:
-                self.callback_func(data)
-        except:
-            pass
-        # ^^^ is just testing version of passing data to net manager function -- TB Finish
-        
-    def task_handler(self, message):
-        # decode message, execute this task
-        # TB Finish
-        pass
-    
-    def attack_callback(self, callback_func):
-        self.callback_func = callback_func
-        print(f"[Socket] Successfully attached callback function, {type(self.callback_func)}")
-        
-
-    def socket_listening_thread(self):
-        self.is_thread_alive = True
-        print("=== Enter socket listening thread === ")
-        # listen to socket
-        while True:
-            ready_to_read, _, _ = select.select([self.read_socket], [], [], 0)
-            if ready_to_read == True:
-                try:
-                    data = self.read_socket.recv(PACKET_SIZE)
-                    if(len(data) > 0):
-                        self.socket_handler(data)
-                    else:
-                        time.sleep(0.1)               
-                except socket.timeout:
-                    print("timeout happened, no message back")
-            else:
-                print("need to reconnect")
-                # try reconnect --------------------------------------------------------------------------
-                # TB Finish
-                time.sleep(1)
-                # TB REVIEW
-                self.is_thread_alive = False
-                return 
-                
-    def run(self):
-        print("Starting socket thread")
-        self.socket_thread = threading.Thread(target=self.socket_listening_thread, args=(), daemon=True)
-        self.socket_thread.start()
-        print("Started socket thread")
-        
+            
 from enum import Enum
 
 def log_data_hist(data_type, data, time):
@@ -234,15 +224,34 @@ class Node:
         
         self.data_historys["GPS"] = deque()            # (gps_data, time)
         self.data_historys["Load_Cell"] = deque()      # (load_data, time)
-        self.data_historys["Robot_Request"] = deque()  # (load_data, time)
+        self.data_historys["Robot_Request"] = deque()  # (request_count, time)
         self.last_contact_time = datetime.now()
         
     def getData(self, data_type):
+        # ====== might not need this function anymore =========
+        # ====== since only cares about data's bytes=========
         if data_type not in self.data_historys:
             print(f"data type {data_type} not exist")
             return None
         
         return self.data_historys[data_type][-1][0]
+        
+    def getDataBytes(self, data_type):
+        # ====== for GPS only for now =========
+        # TB Finish - complte other data type
+        # GPS - 6 byte - lontitude|latitude
+        # ====== for GPS only for now =========
+        
+        if data_type == "GPS":
+            gps_data = self.data_historys[data_type][-1][0]
+            data_byte = b''
+            data_byte += gps_data[0].to_bytes(3, byteorder='big')
+            data_byte += gps_data[1].to_bytes(3, byteorder='big')
+            
+            return data_byte
+            
+        print(f"other type {data_type} not yet supported")
+        return b'FFFFFF'
     
     def storeData(self, data_type, data):
         if data_type not in self.data_historys:
@@ -260,12 +269,11 @@ class Node:
         # need to implment how in detile the status affects Node's other function
         # TB Finish
         self.status = status
-        
-        
+
 shared_node_list = []
 
 class Network_Manager():
-    def __init__(self,socket_manager, uart_manager):
+    def __init__(self):
         # Node list data struct
         # pull the node list from esp_module
         # create data structures
@@ -273,9 +281,6 @@ class Network_Manager():
         self.node_list = shared_node_list
         self.socket_sent = None
         self.uart_sent = None
-        self.socket_manager = socket_manager
-        self.uart_manager = uart_manager
-    
     
     def add_nodes(self, name, address, uuid):
         node = Node(name, address, uuid)
@@ -285,38 +290,82 @@ class Network_Manager():
         print("Net Manager start running")
         while True:
             # print("Net Manager still running...")
-            
-            #TB Review have a while loop that checks for disconnected threads and relaunches them
-            if(self.socket_manager.is_thread_alive == False):
-                print("Relaunching socket listening thread")
-                if(self.socket_manager.accept_connection()):
-                    self.socket_manager.run()
             time.sleep(1)
             
     def attack_callback(self, socket_sent, uart_sent):
         self.socket_sent = socket_sent
         self.uart_sent = uart_sent
+
+    # ============================= Socket Logics =================================
+    def getNodeData(self, data_type, node_addr):
+        # <= data outgoing (single or patch)
+        # S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
+        # ^ success
+        # F|Error_flag/Message
+        data = b'S' + data_type.encode()
+
+        # ----- predefined data length for each type -------
+        data_length_byte = 6 # 6 byte for GPS data
+        # TB Finish
+        data += data_length_byte.to_bytes(1, byteorder='big') # one byte for size, we won't have some data larger than 255 bytes
+        # ----- predefined data length for each type -------
+        
+        if node_addr == 255: # 0xFF => all nodes in same patch
+            active_nodes = list(filter(lambda node: node.status == Node_Status.Active, self.node_list))
+            size_n = len(active_nodes)
+            data += size_n.to_bytes(1, byteorder='big') # one byte for size, we won't have more than 254 nodes
+            for node in active_nodes:
+                data += node.address.to_bytes(1, byteorder='big')
+                data += node.getDataBytes(data_type)
+
+        elif node_addr != 255: # 0x## => single node
+            node = list(filter(lambda node: node.address == node_addr, self.node_list))
+            if len(node) == 0:
+                error = "Node Not Found"
+                data = b'F' + len(error).to_bytes(1, byteorder='big') + error.encode()
+                return data
+                
+            node = node[0]
+            data += node.address.to_bytes(1, byteorder='big')
+            data += node.getDataBytes(data_type)
+
+        return data
+        
         
     def callback_socket(self, data):
         print(f"[NetM] Triger callback from socket thread: {data}")
-        # testing code -----------------------
-        message = data.decode('utf-8')
-        if "[GET]" in message:
+        op_code = data[0:5]
+        payload =  data[5:]
+        try:
+            op_code = op_code.decode('utf-8')
+        except:
+            print("can't parse opcode")
+            return b'F'
+            
+        # if op_code == "[GET]":
+        #     # [GET]|data_type|node_addr/index
+        #     data_type = payload[0:3].decode('utf-8')
+        #     node_addr = int.from_bytes(payload[3], byteorder='big')
+        #     return self.getNodeData(data_type, node_addr)
+            
+        # for testing using "[GET]" testing code -----------------------
+        if op_code == "[GET]":
+            message = data.decode('utf-8')
             message += "[N]"
-            print("  - pass message to uart")
-            self.uart_sent(message.encode())
-        # testing code -----------------------
-    
-    # for testing without uart
-    def callback_socket_no_uart(self, data):
-        print(f"[NetM] Triger callback from socket thread: {data}")
-        # testing code -----------------------
-        message = data.decode('utf-8')
-        if "[GET]" in message:
-            message = "[RES] python server received your message"
-            print("  -from socket thread: send client message back")
+            # ---------------testing without UART-----------
+            print(" => callback: from server to client")
+            message = "[REQ] server response to GET"
             self.socket_sent(message.encode())
-        
+            # ---------------testing without UART-----------
+            
+            # print(" => pass message to uart")
+            # self.uart_sent(message.encode())
+            return b'S'
+        # testing code -----------------------
+
+
+
+    # ============================= UART Logics =================================
         
     def callback_uart(self, data):
         print(f"[NetM] Triger callback from uart thread: {data}")
@@ -324,16 +373,15 @@ class Network_Manager():
         message = data.decode('utf-8')
         if "[GET]" in message:
             message += "[N]"
-            print("  - pass message to socket")
+            print(" -> pass message to socket")
             self.socket_sent(message.encode())
         # testing code -----------------------
     
-
 import time
 
 PACKET_SIZE = 1024
-socket_port = 5001
-port = 'COM7'
+server_socket_port = 5001
+port = '/dev/ttyUSB0' #'COM7'
 baud_rate = 115200
 
 # Main function
@@ -341,13 +389,9 @@ def main():
     # Initialize The serial port & socket
     # Do locks sync for the shared vairable (serial_connection, socket)
     uart_manager = Uart_Task_Manager(port, baud_rate)
-    socket_manager = Socket_Manager(socket_port)
-    # change the net_manager to contain uart_manager and socket_manager instance so it can relunch therad
-    net_manager = Network_Manager(socket_manager, uart_manager)
-    # socket_manager.attack_callback(net_manager.callback_socket)
-    # just for testing client - python server communication
-    socket_manager.attack_callback(net_manager.callback_socket_no_uart)
-    
+    socket_manager = Socket_Manager(server_socket_port, PACKET_SIZE)
+    net_manager = Network_Manager()
+    socket_manager.attack_callback(net_manager.callback_socket)
     uart_manager.attack_callback(net_manager.callback_uart)
     net_manager.attack_callback(socket_manager.send_data, uart_manager.sent_data)
     

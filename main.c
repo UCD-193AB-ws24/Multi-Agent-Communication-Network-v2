@@ -26,11 +26,11 @@ int main(){
 
     strcpy(msg_buffer, "[GET]-Test Message GPS Data");
 
-    while (1) {
+    for(int i = 0; i < 4; i++) {
         printf("=> C-API request \"%s\" sent\n", msg_buffer);
         int error_flag = socket_sent(msg_buffer, strlen(msg_buffer), response_buffer, BUFFER_SIZE);
         printf("<= Server response\"%s\" recived\n", response_buffer);
-        
+        printf("=================================================\n");
         sleep(7);
     }
 

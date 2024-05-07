@@ -10,7 +10,7 @@ void *listen_thread_func (void* in_args){
     struct listen_thread_arg *args= (struct listen_thread_arg*) in_args;
     int socket_fd = args->socket_fd;
     Callback callback_func = args->cb;
-
+    printf("listen fd: %d\n", socket_fd);
     printf("Listening on port %d...\n", PORT);
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
@@ -86,9 +86,6 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     
     // Send data to server
     // send(socket_fd, message, length, MSG_DONTWAIT);
-    int byte_sent = send(socket_fd, message, length, 0);
-    printf("=> Message sent to server [%s]\n", message);
-
     // ==== timeout for response ====
     struct timeval timeout;
     timeout.tv_sec = 5;  // 5 seconds timeout
@@ -97,6 +94,9 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(socket_fd, &readfds); // Add socket_fd to the monitor set
+
+    int byte_sent = send(socket_fd, message, length, 0);
+    printf("=> Message sent to server [%s]\n", message);
 
     int ready = select(socket_fd + 1, &readfds, NULL, NULL, &timeout);
     printf("- wating on response...\n");
@@ -124,7 +124,7 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     }
     
     close(socket_fd);
-    return 1; // for success
+    return 1; // for success // return 0 is usually for success
 }
 
 int connect_socket(int *socket_fd) {
