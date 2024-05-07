@@ -112,6 +112,9 @@ import threading
 import time
 from datetime import datetime
 
+# server_socket is the socket that listen to client's sent request, 1 to multiple client's sent socket
+# send_socket is the persistent socket that connect to the client's listen socket
+#
 class Socket_Manager():
     def __init__(self, server_listen_port, PACKET_SIZE):
         self.PACKET_SIZE = PACKET_SIZE
@@ -121,6 +124,7 @@ class Socket_Manager():
         self.send_socket = None
         self.send_address = None
         self.callback_func = None
+        self.disconnect = True
         
         self.initialize_socket()
     
@@ -138,11 +142,24 @@ class Socket_Manager():
                 
     def connect_send_socket(self):
         self.server_socket.listen(1) # 1 space in queue is enough
-        send_socket, send_address = self.server_socket.accept()
+        # send_socket, send_address = self.server_socket.accept()
         
         # ====== inital extra handshake to confim it belong to our project =======
         # ====== verify is a send_socket (C_API's listen socket) =======
         # TB Finish
+        # TB Review
+        print("connection: " + str(self.disconnect))
+        while (self.disconnect == True):
+            send_socket, send_address = self.server_socket.accept()
+            data = send_socket.recv(self.PACKET_SIZE)
+            print("data: ", data)
+            if data != b'[syn]\x00':
+                send_socket.send(b'[err]-listen_socket_disconnected')
+                send_socket.close()
+            else:
+                print("connected to listen")
+                send_socket.send(b'[ack]\x00')
+                self.disconnect = False
         # ====== end of confirmation
         self.send_socket = send_socket
         self.send_address = send_address
@@ -160,7 +177,7 @@ class Socket_Manager():
         while True:
             client_socket, address = self.server_socket.accept()
             print(f" - Request connection from C-API in {address} has been established.")
-            
+            # print(f" - client socket: {client_socket}")
             request_handler_thread = threading.Thread(target=self.socket_handler, args=(client_socket,))
             request_handler_thread.start()
 
@@ -174,7 +191,6 @@ class Socket_Manager():
 
         # pass data to Net_Manager's function to handler and return the response
         response_bytes = self.callback_func(data)
-        
         client_socket.send(response_bytes)
         client_socket.close()
         
@@ -353,14 +369,14 @@ class Network_Manager():
             message = data.decode('utf-8')
             message += "[N]"
             # ---------------testing without UART-----------
-            print(" => callback: from server to client")
-            message = "[REQ] server response to GET"
-            self.socket_sent(message.encode())
+            # print(" => callback: from server to client")
+            # message = "[REQ] server response to GET"
+            # self.socket_sent(message.encode())
             # ---------------testing without UART-----------
             
             # print(" => pass message to uart")
             # self.uart_sent(message.encode())
-            return b'S'
+            return b'Socket'
         # testing code -----------------------
 
 

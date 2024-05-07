@@ -40,9 +40,23 @@ void *listen_thread_func (void* in_args){
 
 pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
     int socket_fd;
-    connect_socket(&socket_fd);
-    printf("Read socket connected to server\n");
-    // socket_sent("[INIT]", 6); // TB Finish, send message to confirm this is the C-API listen socekt
+    int is_listening_connected;
+    while(is_listening_connected == 0){
+        connect_socket(&socket_fd);
+        printf("Read socket connected to server\n");
+        // socket_sent("[INIT]", 6); // TB Finish, send message to confirm this is the C-API listen socekt
+        // TB Review
+        char* handshake_buffer = (char* ) malloc(6 * sizeof(char));
+        strcpy(handshake_buffer,"[syn]");
+        if(socket_fd != -1){
+            send(socket_fd, handshake_buffer, 6, 0);
+            recv(socket_fd, handshake_buffer, 6, 0);
+            if(strcmp (handshake_buffer, "[ack]") == 0){
+                is_listening_connected = 1;
+            }
+        }
+    }
+  
 
     // spawn a thread
     pthread_t tid;
@@ -88,7 +102,7 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     // send(socket_fd, message, length, MSG_DONTWAIT);
     // ==== timeout for response ====
     struct timeval timeout;
-    timeout.tv_sec = 5;  // 5 seconds timeout
+    timeout.tv_sec = 15;  // 5 seconds timeout
     timeout.tv_usec = 0;
 
     fd_set readfds;

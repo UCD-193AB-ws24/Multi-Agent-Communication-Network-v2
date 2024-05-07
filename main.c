@@ -18,13 +18,21 @@ int main(){
     // struct init_socket_return_type init;
     Callback cb_func = cb;
     pthread_t tid;
-    tid = init_socket(cb_func);
-    printf("finished socket init\n");
     char* msg_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
     char* response_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
-
-
     strcpy(msg_buffer, "[GET]-Test Message GPS Data");
+    // testing send before init
+    printf("=> C-API request \"%s\" sent\n", msg_buffer);
+    int error_flag = socket_sent(msg_buffer, strlen(msg_buffer), response_buffer, BUFFER_SIZE);
+    printf("<= Server response\"%s\" recived\n", response_buffer);
+    printf("=================================================\n");
+    //
+    tid = init_socket(cb_func);
+    printf("finished socket init\n");
+
+
+
+    
 
     for(int i = 0; i < 4; i++) {
         printf("=> C-API request \"%s\" sent\n", msg_buffer);
