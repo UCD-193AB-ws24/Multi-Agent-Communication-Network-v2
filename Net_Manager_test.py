@@ -148,7 +148,6 @@ class Socket_Manager():
         # ====== verify is a send_socket (C_API's listen socket) =======
         # TB Finish
         # TB Review
-        print("connection: " + str(self.disconnect))
         while (self.disconnect == True):
             send_socket, send_address = self.server_socket.accept()
             data = send_socket.recv(self.PACKET_SIZE)
@@ -175,6 +174,11 @@ class Socket_Manager():
         self.server_socket.listen(5)
         print(f"Listening on 'localhost':{self.server_listen_port} for C-API socket connection")
         while True:
+            # reconnect send socket if disconnect TB Review
+            if(self.disconnect == True):
+                print("---------------------------reconnnecting------------------------------")
+                self.connect_send_socket()
+            
             client_socket, address = self.server_socket.accept()
             print(f" - Request connection from C-API in {address} has been established.")
             # print(f" - client socket: {client_socket}")
@@ -204,13 +208,24 @@ class Socket_Manager():
         print(f"[Socket] Successfully attached callback function, {type(self.callback_func)}")
         
     
-# ---------------------- fixing ----------------------------
-    
-        
+# ---------------------- fixing ----------------------------   
+# detect if client listening is open here 
+# TB Review      
     def send_data(self, data):
+        time.sleep(4)
         if self.send_socket != None:
-            # socket.sento(bytes, addr)
-            self.send_socket.sendall(data)
+            print("send_data called")
+            try:
+                self.send_socket.sendall(data)
+            except socket.error as e:
+                err_no = e.errno
+                error_str = e.strerror
+                if(err_no == 32 or err_no == 104 or err_no == 111):
+                    print("Client socket disconnected")
+                    self.send_socket.close()
+                    self.disconnect = True
+                if err_no == 110:
+                    print("Connection timeout")
         else:
             print("No socket connected")
             
@@ -369,9 +384,9 @@ class Network_Manager():
             message = data.decode('utf-8')
             message += "[N]"
             # ---------------testing without UART-----------
-            # print(" => callback: from server to client")
-            # message = "[REQ] server response to GET"
-            # self.socket_sent(message.encode())
+            print(" => callback: from server to client")
+            message = "[REQ] server response to GET"
+            self.socket_sent(message.encode())
             # ---------------testing without UART-----------
             
             # print(" => pass message to uart")

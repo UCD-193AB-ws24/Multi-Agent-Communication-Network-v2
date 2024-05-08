@@ -28,18 +28,14 @@ int main(){
     printf("=================================================\n");
     //
     tid = init_socket(cb_func);
-    printf("finished socket init\n");
+    printf("finished socket init\n");  
 
-
-
-    
-
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 6; i++) {
         printf("=> C-API request \"%s\" sent\n", msg_buffer);
         int error_flag = socket_sent(msg_buffer, strlen(msg_buffer), response_buffer, BUFFER_SIZE);
         printf("<= Server response\"%s\" recived\n", response_buffer);
         printf("=================================================\n");
-        sleep(7);
+        sleep(5);
     }
 
     // wait for thread to finish

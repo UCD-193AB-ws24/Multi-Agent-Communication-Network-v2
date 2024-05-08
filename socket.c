@@ -24,11 +24,11 @@ void *listen_thread_func (void* in_args){
         if (byte_read == 0){
             printf("Connection closed...\n");
             sleep(1);
-            break;;
+            break;
         } else if (byte_read == -1) {
             printf("Connection error..\n");
             sleep(1);
-            break;;
+            break;
         }
 
         callback_func(buffer);
@@ -102,7 +102,7 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     // send(socket_fd, message, length, MSG_DONTWAIT);
     // ==== timeout for response ====
     struct timeval timeout;
-    timeout.tv_sec = 15;  // 5 seconds timeout
+    timeout.tv_sec = 5;  // 5 seconds timeout
     timeout.tv_usec = 0;
 
     fd_set readfds;
@@ -116,11 +116,11 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     printf("- wating on response...\n");
      if (ready == -1) {
         perror("Select error");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // return error instead
     } else if (ready == 0) {
         printf("Timeout occurred\n");
         close(socket_fd);
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // return error instead
     }
 
     // Check if sockfd is ready for reading
