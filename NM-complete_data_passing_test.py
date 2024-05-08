@@ -464,8 +464,8 @@ import time
 
 PACKET_SIZE = 1024
 server_socket_port = 5001
-# port = '/dev/ttyUSB0' #'COM7'
-port = 'COM5'
+port = '/dev/ttyUSB0' #'COM7'
+# port = 'COM5'
 baud_rate = 115200
 
 
