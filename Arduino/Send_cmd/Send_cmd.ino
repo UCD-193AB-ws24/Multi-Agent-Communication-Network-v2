@@ -3,29 +3,58 @@
 #define MAX_MSG_LEN 256
 #define BLE_CMD_LEN 5
 #define BLE_ADDR_LEN 2
+#define ESCAPE_BYTE 0xFA
+#define UART_START 0xFF
+#define UART_END 0xFE
 
-void ble_send_to_root(byte* buffer, size_t length) {
-  char ble_cmd[] = "SEND-";
-  Serial1.print(ble_cmd);
+void uart_write_encoded_bytes(byte* ble_cmd, size_t ble_cmd_len, byte* data_buffer, size_t data_length) {
+  byte esacpe_byte = ESCAPE_BYTE;
+  byte uart_start = UART_START;
+  byte uart_end = UART_END;
+  
+  Serial.write(&uart_start, 1);
+
+  // encode ble_cmd
+  for (byte* byte_itr = ble_cmd ; byte_itr < ble_cmd + ble_cmd_len; ++byte_itr) {
+    if (byte_itr[0] < esacpe_byte) {
+      Serial.write(byte_itr, 1);
+      continue;
+    }
+
+    // need 2 byte encoded
+    byte encoded = byte_itr[0] ^ esacpe_byte; // bitwise Xor
+    Serial.write(&esacpe_byte, 1);
+    Serial.write(&encoded, 1);
+  }
+  
+  // encode data_buffer
+  for (byte* byte_itr = data_buffer ; byte_itr < data_buffer + data_length; ++byte_itr) {
+    if (byte_itr[0] < esacpe_byte) {
+      Serial.write(byte_itr, 1);
+      continue;
+    }
+
+    // need 2 byte encoded
+    byte encoded = byte_itr[0] ^ esacpe_byte; // bitwise Xor
+    Serial.write(&esacpe_byte, 1);
+    Serial.write(&encoded, 1);
+  }
+
+  Serial.write(&uart_end, 1);
+}
+
+void ble_send_to_root(byte* data_buffer, size_t data_length) {
+  // SEND- command need 8 byte for command meta
+  // SEND-|2_byte_addr|1_byte_msg_len|message
+  byte ble_cmd[8] = "SEND-";
   
   // 2 byte dst_addr, 0 for root
-  byte addr[] = {0x00, 0x00}; 
-  Serial1.write(addr, 2);
+  ble_cmd[5] = 0x00; 
+  ble_cmd[6] = 0x00; 
 
   // write length
-  byte msg_len[1];
-  msg_len[0] = (byte) length - 3; // -3 to exclude the end of message mark [E]
-  Serial1.write(msg_len, 1);
-
-  // write data
-  Serial1.write(buffer, length);
-
-  // testing
-  // Serial.print(ble_cmd);
-  // Serial.write(addr, 2);
-  // Serial.write(msg_len, 1);
-  // Serial.write(buffer, length);
-  // Serial.println("");
+  ble_cmd[7] = (byte) data_length;
+  uart_write_encoded_bytes(ble_cmd, 8, data_buffer, data_length);
 }
 
 void sendGPS(int p1, int p2, int p3) {
@@ -114,22 +143,37 @@ void sendTestMutipleData(int16_t *fake_gps, int16_t *fake_ldc, int8_t *fake_idx)
   buf_itr +=3;
 
   // data len - 1 byte
-  memcpy(buf_itr, fake_idx, 1);
+  buf_itr[0] = 0x01;
   buf_itr += 1;
 
   // fake temp Data - 1 byte
-  buf_itr[0] = 0xaa;
+  memcpy(buf_itr, fake_idx, 1);
   buf_itr += 1;
-  
-  // end of message
-  strncpy((char*)buf_itr, "[E]", 3);
+
+  // ------------ encode test \xfb data ---------------- 
+  // data type - 3 byte
+  strncpy((char*)buf_itr, "ESP", 3);
   buf_itr +=3;
+
+  // data len - 1 byte
+  buf_itr[0] = 0x04;
+  buf_itr += 1;
+
+  // fake temp Data - 1 byte
+  buf_itr[0] = 0xfa;
+  buf_itr += 1;
+  buf_itr[0] = 0xfb;
+  buf_itr += 1;
+  buf_itr[0] = 0xfc;
+  buf_itr += 1;
+  buf_itr[0] = 0xfd;
+  buf_itr += 1;
 
   ble_send_to_root(buffer, buf_itr - buffer);
 }
 
 void setup() {
-  // Serial.begin(115200); // usb monitor
+  Serial.begin(115200); // usb monitor
   // while (!Serial);
   Serial1.begin(115200); // tx-pin6 rx-pin7
   while (!Serial1);
