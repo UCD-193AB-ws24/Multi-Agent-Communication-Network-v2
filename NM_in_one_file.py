@@ -32,37 +32,25 @@ class Uart_Task_Manager:
             self.serial_connection = serial.Serial(self.uart_port, self.uart_baud_rate)
             print("connected to serial port", self.uart_port)
         except:
-            print("unable to connect to serial port", self.uart_port)
+            pass
+            # print("unable to connect to serial port", self.uart_port)
         
         
     def uart_event_handler(self, data):
         # print("recived uart data:")
         self.callback_func(data)
-        
-        # try:
-        #     data_str = data.decode().strip()
-        #     print(">", data_str)
-        # except:
-        #     print(" - uart_data can't parse to string")
-        # need uart protocal here =========================================================
-        # TB Finish
-        # try:
-        #     msg_type = data[:5].decode().strip()
-
-        #     if (msg_type == "[CMD]"):
-        #         command_handler(data)
-        # except:
-        #     print(" - Unable to retrive message_-type")
     
-    # for uart protocal
-    def uart_decoder(self):
+    # for uart protocal,  -------------------- TB Finish --------------------------
+    def uart_decoder(self, data):
+        # decode escape bytes
         # TB Finish
-        pass
+        return data
     
-    # for uart protocal
-    def uart_encoder(self):
+    # for uart protocal, -------------------- TB Finish --------------------------
+    def uart_encoder(self, data):
+        # encode escape bytes
         # TB Finish
-        pass
+        return data
     
     def sent_data(self, data):
         if self.serial_connection != None:
@@ -72,56 +60,50 @@ class Uart_Task_Manager:
         self.callback_func = callback_func
         print(f"[Uart] Successfully attached callback function, {type(self.callback_func)}")
     
+    # read the entire message base on protocal, -------------------- TB Finish --------------------------
+    def uart_read_message(self):
+        # read the entire message base on our uart escape byte protocal
+        # TB Finish, rn is the old 3 special end_of_message bytes
+        data = b''
+        while True:
+            if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
+                byte = self.serial_connection.read() # Read and decode the data
+                data += byte
+                if "[Ignore_prev]".encode() in data:
+                    # ignore the inital module setup message from esp
+                    # used for removing the inital uart signal from module lunching, not in our control
+                    data = b''
+                    continue
+                    
+                if data[-3:] == "[E]".encode():
+                    # found end of message sequence
+                    break
+        
+        # decode the raw uart signals
+        return self.uart_decoder(data)
+    
     def uart_listening_thread(self):
         print("=== Enter uart listening thread === ")
         # listen to urat port
         # self.sent_data("[LOGOF]--".encode())
         
-        data = b''
         while True:
             if self.serial_connection != None:
                 try:
-                    if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
-                        byte = self.serial_connection.read() # Read and decode the data
-                        data += byte
-                        if "[Ignore_prev]".encode() in data:
-                            # ignors the inital module setup message from esp
-                            data = b''
-                            continue
-                        try:
-                            # print(data[-3:], "---", "[E]".encode(), "cmp=>", data[-3:] == "[E]".encode())
-                            if data[-3:] == "[E]".encode():
-                                uart_message = data # prevent handler not finishing
-                                data = b''
-                                self.uart_event_handler(uart_message)
-                                print("> returend from uart handler")
-                        except:
-                            pass
+                    uart_message = self.uart_read_message()
+                    self.uart_event_handler(uart_message)
+                    print("> returend from uart handler")  # [Testing Log]
+                    continue # successfuly read one message
                 except serial.SerialException as e:
                     print(f"Serial communication error: {e}")
-                    # self.serial_connection = None
+                    self.serial_connection = None # reset the connection
                 except:
                     pass
-                        
-                        
-                # try:
-                #     if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
-                #         data = self.serial_connection.readline()  # Read and decode the data
-                #         self.uart_event_handler(data)
-                # except serial.SerialException as e:
-                #     print(f"Serial communication error: {e}")
-                #     # self.serial_connection = None
-                # except:
-                #     # fail to read line
-                #     pass
             else:
-                # print("uart thread running")
-                # time.sleep(0.1)
-                # self.callback_func("hello from uart") # testing callback--------------------------------
-
-                print("try to reconnect")
+                # No connection
+                # print("Uart trying to reconnect...")
                 self.uart_connect()
-                time.sleep(1)
+                time.sleep(3)
     
     def run(self):
         print("Starting uart thread")
@@ -138,9 +120,9 @@ class Socket_Manager():
     def __init__(self, server_listen_port, PACKET_SIZE):
         self.PACKET_SIZE = PACKET_SIZE
         self.server_listen_port = server_listen_port
-        self.server_socket = None
+        self.server_socket = None             # Listen for all socket connection
         self.server_listen_thread = None
-        self.send_socket = None
+        self.send_socket = None             # The Main communication Socket for python sending to C-API
         self.send_address = None
         self.callback_func = None
         
@@ -158,7 +140,7 @@ class Socket_Manager():
         print("Started socket thread")
 
                 
-    def connect_send_socket(self):
+    def connect_send_socket(self): # -------------------- TB Finish --------------------------
         self.server_socket.listen(1) # 1 space in queue is enough
         send_socket, send_address = self.server_socket.accept()
         
@@ -197,37 +179,47 @@ class Socket_Manager():
         # pass data to Net_Manager's function to handler and return the response
         response_bytes = self.callback_func(data)
         
-        client_socket.send(response_bytes)
+        # client_socket.send(response_bytes)
         client_socket.close()
-        
-    # def task_handler(self, message):
-    #     # decode message, execute this task
-    #     # TB Finish
-    #     pass
+    
     
     def attack_callback(self, callback_func):
         self.callback_func = callback_func
         print(f"[Socket] Successfully attached callback function, {type(self.callback_func)}")
         
-    
-# ---------------------- fixing ----------------------------
-    
         
-    def send_data(self, data):
+    def send_data(self, data): # -------------------- TB Finish --------------------------
+        print("sending data")
         if self.send_socket != None:
             # socket.sento(bytes, addr)
             self.send_socket.sendall(data)
         else:
             print("No socket connected")
-
+            # implment attemps of reconnection
+# Structure of Node
+# No need for big change at the moment, will get final review and clean up when other stuff is confirmed working
+# - need to remvoe the restriction of only servering GPS (not now)
 
 from enum import Enum
 from collections import deque
 from datetime import datetime
+import os
+
+# Define the path for the new directory
+log_folder = './history_log'
+
+# Create the directory if it does not exist
+if not os.path.exists(log_folder):
+    os.makedirs(log_folder)
+    print("Log Folder created:", log_folder)
+else:
+    print("Log Folder Verified exists:", log_folder)
+
 
 def log_data_hist(data_type, data, time):
+    file_path = log_folder + "/" + data_type + "_hist.txt"
     try:
-        with open(data_type + "_hist.txt", 'a') as log_file:
+        with open(file_path, 'a') as log_file:
             # Write text followed by a newline to the log file
             log_file.write(str(data) + ", " + str(time) + '\n')
     except:
@@ -298,7 +290,6 @@ class Node:
         # TB Finish
         self.status = status
         
-
 shared_node_list = []
 
 class Network_Manager():
@@ -329,6 +320,7 @@ class Network_Manager():
         self.uart_sent = uart_sent
 
     # ============================= Socket Logics =================================
+    # getNodeData needs the pre-defined data_type & length table, (not now),  -------------------- TB Finish --------------------------
     def getNodeData(self, data_type, node_addr):
         # <= data outgoing (single or patch)
         # S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
@@ -374,13 +366,13 @@ class Network_Manager():
         return data
         
     def callback_socket(self, data):
-        print(f"[NetM] Triger callback from socket thread: {data}")
+        print(f"[NetM] Triger callback from socket: {data}") # [Testing Log]
         op_code = data[0:5]
         payload = data[5:]
         try:
             op_code = op_code.decode('utf-8')
         except:
-            print("can't parse opcode", op_code)
+            print("[Socket] can't parse opcode", op_code)
             return b'F'
             
         if op_code == "[GET]":
@@ -390,17 +382,41 @@ class Network_Manager():
             return self.getNodeData(data_type, node_addr)
             
         # for testing using "[ECHO]" testing code -----------------------
-        if "[ECHO]".encode() == data[0:6]:
+        if op_code == "ECHO-":
             message = data.decode('utf-8')
             message += " [Net] "
             print(" => pass message to uart")
             self.uart_sent(message.encode())
             return b'S'
         # testing code -----------------------
+        #----------TB_review : response--------------
+        if op_code == "[RES]":
+            addr = data[5:7]
+            payload = data[7:]
+            message = addr +"<R>".encode() + payload
+            print(" -> pass message to uart " + message.decode('utf-8'))
+            #self.uart_sent(message.encode())
+            #just for testing
+            print("TEST: successfully receive response, ready to send: " )
+            print(message)
+            return b'S'
+        # -------------------------------------------
+        # faking uart request -----------------------
+        op_code = data[0:3].decode('utf-8')
+        if op_code == "<Q>":
+            addr = data[3:5]
+            payload = data[5:]
+            lenth = 14
+            new_data = addr + "<Q>".encode() +lenth.to_bytes(1, "little")  + payload
+            print(new_data)
+            self.callback_uart(new_data)
+            return b'S'
+        #
 
 
 
     # ============================= UART Logics =================================
+    # updateNodeData needs the pre-defined data_type & length table, (not now),  -------------------- TB Finish --------------------------
     def updateNodeData(self, node_addr, msg_payload):
         print("updateNodeData from cmd:[D] on node:", node_addr)
         node = list(filter(lambda node: node.address == node_addr, self.node_list))
@@ -434,50 +450,47 @@ class Network_Manager():
         print("done updating node:", node_addr)
         
     def callback_uart(self, data):
-        print(f"[NetM] Triger callback from uart thread: {data}")
+        print(f"[NetM] Triger callback from uart thread: {data}") # [Testing Log]
         node_addr = data[0:2]
         op_code = data[2:5]
         payload = data[5:]
         
         node_addr = int.from_bytes(node_addr, byteorder='little', signed=False)
-        # try:
-        #     op_code = op_code.decode('utf-8')
-        # except:
-        #     print("can't parse opcode", op_code)
-        #     return b'F'
+        try:
+            op_code = op_code.decode('utf-8')
+        except:
+            print("[Uart] can't parse opcode", op_code)
+            return b'F'
         
-        if op_code == "[D]".encode():
+        if op_code == "[D]":
             # Data update
             self.updateNodeData(node_addr, payload)
             
         
         # -------------- testing code -----------------------
-        if "[ECHO]".encode() == data[0:6]:
+        if "ECHO-".encode() == data[2:7]: # 1-2 is always added node addr
             message += " [Net] "
-            print(" -> pass message to socket")
+            print(" -> pass message to socket")  # [Testing Log]
             self.socket_sent(message.encode())
         # testing code -----------------------
+        #--------TB_review : response----------------
+        if op_code == "<Q>":
+            socket_op_code = "[REQ]".encode()
+            message = socket_op_code+node_addr.to_bytes(2, byteorder='little')+payload
+            print(message)
+            self.socket_sent(message)
+        # -------------------------------------------
     
-        print("> uart callback done")
+        print("> uart callback done")  # [Testing Log]
+
 
 import time
 
 PACKET_SIZE = 1024
 server_socket_port = 5001
-port = '/dev/ttyUSB0' #'COM7'
-# port = 'COM5'
+# port = '/dev/ttyUSB0' #'COM7'
+port = 'COM5'
 baud_rate = 115200
-
-
-import serial.tools.list_ports
-
-def list_serial_ports():
-    ports = serial.tools.list_ports.comports()
-    available_ports = []
-    for port, desc, hwid in sorted(ports):
-        print(f"{port}: {desc} [{hwid}]")
-        available_ports.append(port)
-    return available_ports
 
 # Main function
 def main():

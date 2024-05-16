@@ -89,6 +89,10 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     int byte_sent = send(socket_fd, message, length, 0);
     printf("=> Message sent to server [%s]\n", message);
 
+    if(response_buffer == NULL){
+        close(socket_fd);
+        return 1;
+    }
     // ==== timeout for response ====
     struct timeval timeout;
     timeout.tv_sec = 5;  // 5 seconds timeout
