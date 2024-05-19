@@ -2,12 +2,6 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#define socket_op_amount 2
-
-const char scoket_opcode[socket_op_amount][SOCKET_OPCODE_LEN + 1] = { // +1 for '\0'
-  "[REQ]", "EMPTY"
-};
-
 int edge_robot_request_handler(uint16_t node_addr) {
     // for demo purpose, accept one request and reject one request
     static int avaiable  = 1;
@@ -83,13 +77,13 @@ void Data_Request_example(uint16_t node_addr, char* data_type, size_t data_type_
         // failed
         printf("Failed to get data");
         sleep(2);
-        continue;
+        return;
     }
 
     /****************** example decodeing message******************/
     // format of data agreed with arduion-c-api side
     // what ever format sended from arduion will get returned from socket
-    char* byte_itr = response_buffer + strlen("GPS") + 1;
+    byte_itr = response_buffer + strlen("GPS") + 1;
     int8_t data_len = (int8_t)byte_itr[0]; // will be 6
     byte_itr += 1;
 

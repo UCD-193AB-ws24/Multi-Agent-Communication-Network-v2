@@ -1,5 +1,9 @@
 #include "socket.h"
 
+const char scoket_opcode[socket_op_amount][SOCKET_OPCODE_LEN + 1] = { // +1 for '\0'
+  "[REQ]", "EMPTY"
+};
+
 struct listen_thread_arg{
     Callback cb;
     int socket_fd;
@@ -78,7 +82,7 @@ pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
 // }
 
 
-int getOpcodeNum(char** scoket_opcode, char* opcode) {
+int getOpcodeNum(char* opcode) {
     for (int i = 0; i < socket_op_amount; ++i) {
         if (strncmp(opcode, scoket_opcode[i], strlen(scoket_opcode[i])) == 0) {
             return i;
@@ -113,7 +117,7 @@ size_t socket_craft_message_example(char* buffer, size_t buffer_len, char* socke
     buffer_itr += SOCKET_OPCODE_LEN;
     byte_count += SOCKET_OPCODE_LEN;
 
-    node_addr = htos(node_addr); // Convert to network byte order
+    node_addr = htons(node_addr); // Convert to network byte order
 
     memcpy(buffer, &node_addr, SOCKET_NODE_ADDR_LEN);
     buffer_itr += SOCKET_NODE_ADDR_LEN;
