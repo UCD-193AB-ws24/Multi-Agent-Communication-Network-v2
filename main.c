@@ -61,54 +61,64 @@ void socket_message_callback(char* socket_msg) {
     }
 }
 
+void Data_Request_example(uint16_t node_addr, char* data_type, size_t data_type_len) {
+    char* msg_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
+    char* response_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
+    response_buffer[30] = '\0'; // for testing log printing
+
+    /****************** craft the get_data_message ******************/
+    size_t msg_len = socket_craft_message_example(msg_buffer, BUFFER_SIZE, "[GET]", node_addr, data_type, data_type_len);
+    msg_buffer[msg_len] = '\0';  // for testing log printing
+
+    printf("=> C-API request \"%s\" sent\n", msg_buffer);
+    int error_flag = socket_sent(msg_buffer, msg_len, response_buffer, BUFFER_SIZE);
+    printf("<= Server response\"%s\" recived\n", response_buffer);
+    // response_buffer contains only response to socket_sent, not socket opcode in it
+    
+    // S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
+    // F|error_message_length|error_message
+    char* byte_itr = response_buffer;
+    
+    if (*byte_itr != 'S') {
+        // failed
+        printf("Failed to get data");
+        sleep(2);
+        continue;
+    }
+
+    /****************** example decodeing message******************/
+    // format of data agreed with arduion-c-api side
+    // what ever format sended from arduion will get returned from socket
+    char* byte_itr = response_buffer + strlen("GPS") + 1;
+    int8_t data_len = (int8_t)byte_itr[0]; // will be 6
+    byte_itr += 1;
+
+    int8_t node_amount = (int8_t)byte_itr[0]; // will be 1
+    byte_itr += 1;
+
+    int16_t n1 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
+    byte_itr += 2;
+    int16_t n2 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
+    byte_itr += 2;
+    int16_t n3 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
+    byte_itr += 2;
+    fprintf(stderr, " * Node-%d GPS:%d bytes (%d,%d,%d)\n", node_addr, data_len, n1, n2, n3);
+
+    free(msg_buffer);
+    free(response_buffer);
+}
+
 int main(){
     // test_sent("My brain blew up");
     // struct init_socket_return_type init;
     pthread_t tid;
     tid = init_socket(socket_message_callback);
     printf("finished socket init\n");
-    char* msg_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
-    char* response_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
-    response_buffer[30] = '\0'; // for testing log printing
 
 
     uint16_t node_addr = 5; // first node connected
-    size_t msg_len = socket_craft_message_example(msg_buffer, BUFFER_SIZE, "[GET]", node_addr, "GPS", 3);
-    msg_buffer[msg_len] = '\0';  // for testing log printing
-
     while (1) {
-        printf("=> C-API request \"%s\" sent\n", msg_buffer);
-        int error_flag = socket_sent(msg_buffer, msg_len, response_buffer, BUFFER_SIZE);
-        printf("<= Server response\"%s\" recived\n", response_buffer);
-        // response_buffer contains only response to socket_sent, not socket opcode in it
-        
-        // S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
-        // F|error_message_length|error_message
-        char* byte_itr = response_buffer;
-        
-        if (*byte_itr != 'S') {
-            // failed
-            printf("Failed to get data");
-            sleep(2);
-            continue;
-        }
-
-        // example decodeing, format of data agreed with arduion-c-api side
-        char* byte_itr = response_buffer + strlen("GPS") + 1;
-        int8_t data_len = (int8_t)byte_itr[0]; // will be 6
-        byte_itr += 1;
-
-        int8_t node_amount = (int8_t)byte_itr[0]; // will be 1
-        byte_itr += 1;
-
-        int16_t n1 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
-        byte_itr += 2;
-        int16_t n2 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
-        byte_itr += 2;
-        int16_t n3 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
-        byte_itr += 2;
-        fprintf(stderr, " * Node-%d GPS:%d bytes (%d,%d,%d)\n", node_addr, data_len, n1, n2, n3);
-        
+        Data_Request_example(node_addr, "GPS", 3);
         sleep(2);
     }
 
