@@ -2,6 +2,13 @@
 #include <unistd.h>
 #include <stdint.h>
 
+// more log on the api-process
+// test fodler / example code folder
+// define the some basic datatype for both side to agree one in file
+
+// document all the folder and info files
+// - SOCKET_OPCODE located in socket.c
+
 int edge_robot_request_handler(uint16_t node_addr) {
     // for demo purpose, accept one request and reject one request
     static int avaiable  = 1;

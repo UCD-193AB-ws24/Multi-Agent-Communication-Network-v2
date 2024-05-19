@@ -7,6 +7,8 @@
 #define UART_START 0xFF
 #define UART_END 0xFE
 
+#define MAX_TIMEOUT 100// --------------- timeout
+
 #define REQUEST_EXAMPLE_BUTTON_PIN 5
 volatile bool requestButtonPressed = false;
 unsigned long lastDebounceTime = 0;
