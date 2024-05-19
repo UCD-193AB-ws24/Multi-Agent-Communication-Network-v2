@@ -7,76 +7,84 @@
 #define UART_START 0xFF
 #define UART_END 0xFE
 
-/* UART Base function, encode and decode uart message*/
+#define REQUEST_EXAMPLE_BUTTON_PIN 5
+volatile bool requestButtonPressed = false;
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 100; // Debounce delay in milliseconds
+volatile bool lastButtonState = HIGH;
+
+// ====================== will move to other file ===========================
+/* UART Base function, encode and decode uart message */
 // log to Serial port that's connected with usb
 void uart_log_encoded_bytes(byte* ble_cmd, size_t ble_cmd_len, byte* data_buffer, size_t data_length) {
-  byte esacpe_byte = ESCAPE_BYTE;
+  byte escape_byte = ESCAPE_BYTE;
   byte uart_start = UART_START;
   byte uart_end = UART_END;
   
+  Serial.print("Log [");
   Serial.write(&uart_start, 1);
 
   // encode ble_cmd
-  for (byte* byte_itr = ble_cmd ; byte_itr < ble_cmd + ble_cmd_len; ++byte_itr) {
-    if (byte_itr[0] < esacpe_byte) {
+  for (byte* byte_itr = ble_cmd; byte_itr < ble_cmd + ble_cmd_len; ++byte_itr) {
+    if (byte_itr[0] < escape_byte) {
       Serial.write(byte_itr, 1);
       continue;
     }
 
     // need 2 byte encoded
-    byte encoded = byte_itr[0] ^ esacpe_byte; // bitwise Xor
-    Serial.write(&esacpe_byte, 1);
+    byte encoded = byte_itr[0] ^ escape_byte; // bitwise Xor
+    Serial.write(&escape_byte, 1);
     Serial.write(&encoded, 1);
   }
   
   // encode data_buffer
-  for (byte* byte_itr = data_buffer ; byte_itr < data_buffer + data_length; ++byte_itr) {
-    if (byte_itr[0] < esacpe_byte) {
+  for (byte* byte_itr = data_buffer; byte_itr < data_buffer + data_length; ++byte_itr) {
+    if (byte_itr[0] < escape_byte) {
       Serial.write(byte_itr, 1);
       continue;
     }
 
     // need 2 byte encoded
-    byte encoded = byte_itr[0] ^ esacpe_byte; // bitwise Xor
-    Serial.write(&esacpe_byte, 1);
+    byte encoded = byte_itr[0] ^ escape_byte; // bitwise Xor
+    Serial.write(&escape_byte, 1);
     Serial.write(&encoded, 1);
   }
 
   Serial.write(&uart_end, 1);
-  Serial.println();
+  Serial.println("]");
 }
 
 // write to Serial1 port that's connected tx/rx pin
 void uart_write_encoded_bytes(byte* ble_cmd, size_t ble_cmd_len, byte* data_buffer, size_t data_length) {
-  byte esacpe_byte = ESCAPE_BYTE;
+  byte escape_byte = ESCAPE_BYTE;
   byte uart_start = UART_START;
   byte uart_end = UART_END;
   
   Serial1.write(&uart_start, 1);
 
   // encode ble_cmd
-  for (byte* byte_itr = ble_cmd ; byte_itr < ble_cmd + ble_cmd_len; ++byte_itr) {
-    if (byte_itr[0] < esacpe_byte) {
+  for (byte* byte_itr = ble_cmd; byte_itr < ble_cmd + ble_cmd_len; ++byte_itr) {
+    if (byte_itr[0] < escape_byte) {
       Serial1.write(byte_itr, 1);
       continue;
     }
 
     // need 2 byte encoded
-    byte encoded = byte_itr[0] ^ esacpe_byte; // bitwise Xor
-    Serial1.write(&esacpe_byte, 1);
+    byte encoded = byte_itr[0] ^ escape_byte; // bitwise Xor
+    Serial1.write(&escape_byte, 1);
     Serial1.write(&encoded, 1);
   }
   
   // encode data_buffer
-  for (byte* byte_itr = data_buffer ; byte_itr < data_buffer + data_length; ++byte_itr) {
-    if (byte_itr[0] < esacpe_byte) {
+  for (byte* byte_itr = data_buffer; byte_itr < data_buffer + data_length; ++byte_itr) {
+    if (byte_itr[0] < escape_byte) {
       Serial1.write(byte_itr, 1);
       continue;
     }
 
     // need 2 byte encoded
-    byte encoded = byte_itr[0] ^ esacpe_byte; // bitwise Xor
-    Serial1.write(&esacpe_byte, 1);
+    byte encoded = byte_itr[0] ^ escape_byte; // bitwise Xor
+    Serial1.write(&escape_byte, 1);
     Serial1.write(&encoded, 1);
   }
 
@@ -84,9 +92,14 @@ void uart_write_encoded_bytes(byte* ble_cmd, size_t ble_cmd_len, byte* data_buff
 }
 
 // Read and Decode uart message
-size_t uart_readAndDecode_message(class Uart serial_port, byte* data_buffer, size_t buffer_len, size_t* data_len_ptr) {
+size_t uart_readAndDecode_message(HardwareSerial& serial_port, byte* data_buffer, size_t buffer_len, size_t* data_len_ptr) {
   size_t byte_read = 0;
   size_t data_len = 0;
+
+  if (serial_port.available() <= 0) {
+    *data_len_ptr = 0;
+    return 0;
+  }
   
   // locate uart start
   while (serial_port.available() > 0) {
@@ -96,7 +109,7 @@ size_t uart_readAndDecode_message(class Uart serial_port, byte* data_buffer, siz
     }
   }
 
-  // read untile uart end
+  // read until uart end
   while (serial_port.available() > 0) {
     byte data = serial_port.read();
     if (data == UART_END) {
@@ -116,16 +129,12 @@ size_t uart_readAndDecode_message(class Uart serial_port, byte* data_buffer, siz
   }
 
   if (data_len > buffer_len) {
-    Serial.printf("[Error] Read %d byte decoed to %d byte > %d byte buffer length !!", byte_read, data_len, buffer_len);
+    Serial.printf("[Error] Read %d byte decoded to %d byte > %d byte buffer length !!", byte_read, data_len, buffer_len);
   }
 
   *data_len_ptr = data_len;
 
-
-  // Debug log
-  Serial.print("[UART] >> \'");
-  Serial.write(data_buffer, byte_read);
-  Serial.println("\'");
+  return byte_read;
 }
 
 /* Example Function, Send Data update Network Server */
@@ -139,10 +148,12 @@ void ble_send_to_root(byte* data_buffer, size_t data_length) {
   ble_cmd[6] = 0x00; 
 
   // write length
-  ble_cmd[7] = (byte) data_length;
+  ble_cmd[7] = (byte)data_length;
   uart_write_encoded_bytes(ble_cmd, 8, data_buffer, data_length);
-  // uart_log_encoded_bytes(ble_cmd, 8, data_buffer, data_length);
+  uart_log_encoded_bytes(ble_cmd, 8, data_buffer, data_length);
 }
+
+// ====================== will move to other file ===========================
 
 void sendGPS(int p1, int p2, int p3) {
   // [D]|size_n|data_type|data_length_byte|data|...|data_type|data_length_byte|data|[E]
@@ -151,7 +162,7 @@ void sendGPS(int p1, int p2, int p3) {
 
   // message type
   strncpy((char*)buf_itr, "[D]", 3);
-  buf_itr +=3;
+  buf_itr += 3;
 
   // 1 byte size_n of data amount, only one for GPS
   buf_itr[0] = 0x01;
@@ -159,7 +170,7 @@ void sendGPS(int p1, int p2, int p3) {
 
   // data type - 3 byte
   strncpy((char*)buf_itr, "GPS", 3);
-  buf_itr +=3;
+  buf_itr += 3;
 
   // data len - 1 byte
   buf_itr[0] = 0x06; // 6 byte GPS data
@@ -176,19 +187,19 @@ void sendGPS(int p1, int p2, int p3) {
   
   // end of message
   strncpy((char*)buf_itr, "[E]", 3);
-  buf_itr +=3;
+  buf_itr += 3;
 
   ble_send_to_root(buffer, buf_itr - buffer);
 }
 
-void sendTestMutipleData(int16_t *fake_gps, int16_t *fake_ldc, int8_t *fake_idx) {
+void sendTestMultipleData(int16_t* fake_gps, int16_t* fake_ldc, int8_t* fake_idx) {
   // [D]|size_n|data_type|data_length_byte|data|...|data_type|data_length_byte|data|[E]
   byte buffer[MAX_MSG_LEN];
   byte* buf_itr = buffer;
 
   // message type
   strncpy((char*)buf_itr, "[D]", 3);
-  buf_itr +=3;
+  buf_itr += 3;
 
   // 1 byte size_n of data amount
   buf_itr[0] = 0x03;
@@ -197,7 +208,7 @@ void sendTestMutipleData(int16_t *fake_gps, int16_t *fake_ldc, int8_t *fake_idx)
   // ------------ data ---------------- 
   // data type - 3 byte
   strncpy((char*)buf_itr, "GPS", 3);
-  buf_itr +=3;
+  buf_itr += 3;
 
   // data len - 1 byte
   buf_itr[0] = 0x06; // 6 byte GPS data
@@ -214,7 +225,7 @@ void sendTestMutipleData(int16_t *fake_gps, int16_t *fake_ldc, int8_t *fake_idx)
   // ------------ data ---------------- 
   // data type - 3 byte
   strncpy((char*)buf_itr, "LDC", 3);
-  buf_itr +=3;
+  buf_itr += 3;
 
   // data len - 1 byte
   buf_itr[0] = 0x02; // 2 byte GPS data
@@ -227,7 +238,7 @@ void sendTestMutipleData(int16_t *fake_gps, int16_t *fake_ldc, int8_t *fake_idx)
   // ------------ data ---------------- 
   // data type - 3 byte
   strncpy((char*)buf_itr, "IDX", 3);
-  buf_itr +=3;
+  buf_itr += 3;
 
   // data len - 1 byte
   buf_itr[0] = 0x01;
@@ -240,7 +251,7 @@ void sendTestMutipleData(int16_t *fake_gps, int16_t *fake_ldc, int8_t *fake_idx)
   // ------------ encode test \xfb data ---------------- 
   // data type - 3 byte
   strncpy((char*)buf_itr, "ESP", 3);
-  buf_itr +=3;
+  buf_itr += 3;
 
   // data len - 1 byte
   buf_itr[0] = 0x04;
@@ -261,28 +272,97 @@ void sendTestMutipleData(int16_t *fake_gps, int16_t *fake_ldc, int8_t *fake_idx)
 
 /* Example Function, Send Request to Network Server */
 void sendRobotRequest() {
-  
+  // "<Q>Robot"
+  static int count = 0;
+  Serial.print("Sending Robot Request: ");
+  Serial.print(count++);
+  Serial.print("\n");
+
+  byte buffer[10];
+  byte* buf_itr = buffer;
+
+  // message type
+  strncpy((char*)buf_itr, "<Q>", 3);
+  buf_itr += 3;
+
+  // request type
+  strncpy((char*)buf_itr, "Robot", 5);
+  buf_itr += 5;
+
+  ble_send_to_root(buffer, buf_itr - buffer);
+}
+
+void checkRequestButton() {
+  if (requestButtonPressed) {
+    // Reset the button flag
+    requestButtonPressed = false;
+
+    sendRobotRequest();
+  }
+}
+
+// Interrupt Service Routine (ISR) for button press
+void buttonISR() {
+  unsigned long currentMillis = millis();
+  bool reading = digitalRead(REQUEST_EXAMPLE_BUTTON_PIN);
+
+  // Check if the time since the last debounce is greater than the debounce delay
+  if ((currentMillis - lastDebounceTime) > debounceDelay) {
+    if (reading != lastButtonState) {
+      lastDebounceTime = currentMillis;
+      lastButtonState = reading;
+
+      // Check if the button state is LOW (button pressed)
+      if (reading == LOW) {
+        requestButtonPressed = true;
+      }
+    }
+  }
 }
 
 void setup() {
   Serial.begin(115200); // usb monitor
-  // while (!Serial);
   Serial1.begin(115200); // tx-pin6 rx-pin7
-  while (!Serial1);
+
+  pinMode(REQUEST_EXAMPLE_BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(REQUEST_EXAMPLE_BUTTON_PIN), buttonISR, CHANGE);
+  Serial.print("Finished Setup\n");
 }
 
 int16_t fake_gps = 64000;
 int16_t fake_lds = 59910;
 int8_t fake_idx = 0;
 
+unsigned long lastSendTime = 0;
 void loop() {
-  sendTestMutipleData(&fake_gps, &fake_lds, &fake_idx);
-  fake_gps += 20;
-  fake_lds += 10;
-  fake_idx += 1;
+  // check if there is a robot request
+  unsigned long time = millis();
+
+  checkRequestButton();
+
+  // check if there is uart message
   byte data[1024];
-  size_t data_len;
-  uart_readAndDecode_message(Serial1, data, 1024, &data_len);
-  uart_readAndDecode_message(Serial1, data, 1024, &data_len);
-  delay(5000);
+  size_t data_len = 0;
+  size_t byte_read = uart_readAndDecode_message(Serial1, data, 1024, &data_len);
+
+  // Debug log
+  if (byte_read > 0) {
+    Serial.print("[UART] read ");
+    Serial.print(byte_read);
+    Serial.print(" byte \'");
+    Serial.write(data, data_len);
+    Serial.println("\'");
+  }
+
+  // send update
+  if (time - lastSendTime >= 5000) {
+    lastSendTime = time;
+    sendTestMultipleData(&fake_gps, &fake_lds, &fake_idx);
+    fake_gps += 20;
+    fake_lds += 10;
+    fake_idx += 1;
+    // Serial.print(".");
+  }
+
+  delay(50);
 }
