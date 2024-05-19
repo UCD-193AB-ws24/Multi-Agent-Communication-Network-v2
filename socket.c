@@ -78,6 +78,55 @@ pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
 // }
 
 
+int getOpcodeNum(char** scoket_opcode, char* opcode) {
+    for (int i = 0; i < socket_op_amount; ++i) {
+        if (strncmp(opcode, scoket_opcode[i], strlen(scoket_opcode[i])) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+uint16_t getNodeAddr(const char* data) {
+    // Decode the node address
+    uint8_t byte1 = (uint8_t)data[0];
+    uint8_t byte2 = (uint8_t)data[1];
+    
+    // Combine the two bytes into a single uint16_t value
+    uint16_t combined = ((uint16_t)byte1 << 8) | (uint16_t)byte2;
+    
+    // Convert the combined value from network byte order to host byte order
+    // Network to Host Short, ensures the endianess on both side
+    uint16_t host_value = ntohs(combined);
+    
+    return host_value;
+}
+
+// return final socket message length
+size_t socket_craft_message_example(char* buffer, size_t buffer_len, char* socket_opcode, uint16_t node_addr, char* payload, size_t payload_len) {
+    printf("crafting socket message\n");
+    char* buffer_itr = buffer;
+    size_t byte_count = 0;
+    
+    memcpy(buffer, socket_opcode, SOCKET_OPCODE_LEN);
+    buffer_itr += SOCKET_OPCODE_LEN;
+    byte_count += SOCKET_OPCODE_LEN;
+
+    node_addr = htos(node_addr); // Convert to network byte order
+
+    memcpy(buffer, &node_addr, SOCKET_NODE_ADDR_LEN);
+    buffer_itr += SOCKET_NODE_ADDR_LEN;
+    byte_count += SOCKET_NODE_ADDR_LEN;
+
+    
+    memcpy(buffer, payload, payload_len);
+    buffer_itr += payload_len;
+    byte_count += payload_len;
+
+    return byte_count;
+}
+
 int socket_sent(char* message, size_t length, char* response_buffer, size_t buffer_len) {
     int socket_fd = -1;
 

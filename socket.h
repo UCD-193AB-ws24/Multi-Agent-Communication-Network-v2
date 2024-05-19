@@ -24,7 +24,9 @@ typedef void (*Callback) (char*);
 //     int client_fd;
 //     pthread_t tid;
 // };
-
+int getOpcodeNum(char** scoket_opcode, char* opcode);
+uint16_t getNodeAddr(const char* data);
+size_t socket_craft_message_example(char* buffer, size_t buffer_len, char* socket_opcode, uint16_t node_addr, char* payload, size_t payload_len);
 int socket_sent(char* message, size_t length, char* response_buffer, size_t buffer_len) ;  /* An example function declaration */
 pthread_t init_socket(void(*callback) (char*));
 void *listen_thread_func (void* in_args);
