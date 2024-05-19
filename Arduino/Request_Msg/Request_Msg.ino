@@ -7,6 +7,7 @@
 #define UART_START 0xFF
 #define UART_END 0xFE
 
+/* UART Base function, encode and decode uart message*/
 // log to Serial port that's connected with usb
 void uart_log_encoded_bytes(byte* ble_cmd, size_t ble_cmd_len, byte* data_buffer, size_t data_length) {
   byte esacpe_byte = ESCAPE_BYTE;
@@ -82,6 +83,52 @@ void uart_write_encoded_bytes(byte* ble_cmd, size_t ble_cmd_len, byte* data_buff
   Serial1.write(&uart_end, 1);
 }
 
+// Read and Decode uart message
+size_t uart_readAndDecode_message(class Uart serial_port, byte* data_buffer, size_t buffer_len, size_t* data_len_ptr) {
+  size_t byte_read = 0;
+  size_t data_len = 0;
+  
+  // locate uart start
+  while (serial_port.available() > 0) {
+    byte data = serial_port.read();
+    if (data == UART_START) {
+      break;
+    }
+  }
+
+  // read untile uart end
+  while (serial_port.available() > 0) {
+    byte data = serial_port.read();
+    if (data == UART_END) {
+      break;
+    }
+
+    if (data == ESCAPE_BYTE) {
+      byte encoded = serial_port.read();
+      data = encoded ^ ESCAPE_BYTE;
+      byte_read += 1;
+    }
+
+    // store this byte to data_buffer
+    data_buffer[data_len] = data;
+    byte_read += 1;
+    data_len += 1;
+  }
+
+  if (data_len > buffer_len) {
+    Serial.printf("[Error] Read %d byte decoed to %d byte > %d byte buffer length !!", byte_read, data_len, buffer_len);
+  }
+
+  *data_len_ptr = data_len;
+
+
+  // Debug log
+  Serial.print("[UART] >> \'");
+  Serial.write(data_buffer, byte_read);
+  Serial.println("\'");
+}
+
+/* Example Function, Send Data update Network Server */
 void ble_send_to_root(byte* data_buffer, size_t data_length) {
   // SEND- command need 8 byte for command meta
   // SEND-|2_byte_addr|1_byte_msg_len|message
@@ -212,49 +259,9 @@ void sendTestMutipleData(int16_t *fake_gps, int16_t *fake_ldc, int8_t *fake_idx)
   ble_send_to_root(buffer, buf_itr - buffer);
 }
 
-// Read and Decode uart message
-size_t uart_readAndDecode_message(class Uart serial_port, byte* data_buffer, size_t buffer_len, size_t* data_len_ptr) {
-  size_t byte_read = 0;
-  size_t data_len = 0;
+/* Example Function, Send Request to Network Server */
+void sendRobotRequest() {
   
-  // locate uart start
-  while (serial_port.available() > 0) {
-    byte data = serial_port.read();
-    if (data == UART_START) {
-      break;
-    }
-  }
-
-  // read untile uart end
-  while (serial_port.available() > 0) {
-    byte data = serial_port.read();
-    if (data == UART_END) {
-      break;
-    }
-
-    if (data == ESCAPE_BYTE) {
-      byte encoded = serial_port.read();
-      data = encoded ^ ESCAPE_BYTE;
-      byte_read += 1;
-    }
-
-    // store this byte to data_buffer
-    data_buffer[data_len] = data;
-    byte_read += 1;
-    data_len += 1;
-  }
-
-  if (data_len > buffer_len) {
-    Serial.printf("[Error] Read %d byte decoed to %d byte > %d byte buffer length !!", byte_read, data_len, buffer_len);
-  }
-
-  *data_len_ptr = data_len;
-
-
-  // Debug log
-  Serial.print("[UART] >> \'");
-  Serial.write(data_buffer, byte_read);
-  Serial.println("\'");
 }
 
 void setup() {
