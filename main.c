@@ -6,6 +6,8 @@ int edge_robot_request_handler(uint16_t node_addr) {
     // for demo purpose, accept one request and reject one request
     static int avaiable  = 1;
 
+    printf("[Request] robot recived from edge %hu, avaiablilty %d", node_addr, avaiable);
+
     if (avaiable > 0) {
         avaiable--;
         return 1;
@@ -16,10 +18,13 @@ int edge_robot_request_handler(uint16_t node_addr) {
 }
 
 void socket_message_callback(char* socket_msg) {
-    printf("socket callback trigered\n");
+    printf("\n=== socket callback trigered === \n");
+    printf("\nsocket message \'%.12s\'\n", socket_msg);
+
     int opcode_num = getOpcodeNum(socket_msg);
     uint16_t node_addr = getNodeAddr(socket_msg + SOCKET_OPCODE_LEN);
     char* payload = socket_msg + SOCKET_OPCODE_LEN + SOCKET_NODE_ADDR_LEN;
+    printf("opcode_num: %d, node_addr: %hu\n", opcode_num, node_addr);
 
     switch (opcode_num)
     {
@@ -28,10 +33,12 @@ void socket_message_callback(char* socket_msg) {
         break;
     case 0: // [REQ], request from edge device
         // Request payload includes, 1_byte_type_name_len|n_byte_type_name
-        uint8_t length = (uint8_t)payload[0];
-        char* request_type = payload + 1;
+        // uint8_t length = (uint8_t)payload[0];  // forgoted to encode in ardunion for demo
+        char* request_type = payload; // payload + 1;
 
-        if (strncmp(request_type, "Robot", 6) == 0) {
+        printf("  * [REQ] - request\n");
+        if (strncmp(request_type, "Robot", 5) == 0) {
+            printf("  * [REQ] - Robot request\n");
             char *request_response = (char* ) malloc(BUFFER_SIZE * sizeof(char));
             char response_message = '-';
 
@@ -42,7 +49,9 @@ void socket_message_callback(char* socket_msg) {
             }
 
             size_t response_len = socket_craft_message_example(request_response, BUFFER_SIZE, "[REQ]", node_addr, &response_message, 1);
+            fprintf(stderr, "Sendning request_response... \'%.6s\'\n", request_response);
             socket_sent(request_response, response_len, NULL, 0); // "NULL, 0" means no need for response
+            fprintf(stderr, "Sended request_response\n\n");
 
             free(request_response);
         }
@@ -113,7 +122,8 @@ int main(){
     uint16_t node_addr = 5; // first node connected
     while (1) {
         Data_Request_example(node_addr, "GPS", 3);
-        sleep(2);
+        printf("\n");
+        sleep(10);
     }
 
 

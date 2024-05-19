@@ -42,7 +42,7 @@ void *listen_thread_func (void* in_args){
     // close(socket_fd);
 }
 
-pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
+pthread_t init_socket(Callback socket_message_callback){ //return socket_fd so it can be closed later
     int socket_fd;
     connect_socket(&socket_fd);
     printf("Read socket connected to server\n");
@@ -51,7 +51,7 @@ pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
     // spawn a thread
     pthread_t tid;
     struct listen_thread_arg* args = (struct listen_thread_arg*)malloc(sizeof(struct listen_thread_arg));
-    args->cb = cb;
+    args->cb = socket_message_callback;
     args->socket_fd = socket_fd;
     pthread_create(&tid, NULL, listen_thread_func, (void*)args);
     
@@ -113,18 +113,18 @@ size_t socket_craft_message_example(char* buffer, size_t buffer_len, char* socke
     char* buffer_itr = buffer;
     size_t byte_count = 0;
     
-    memcpy(buffer, socket_opcode, SOCKET_OPCODE_LEN);
+    memcpy(buffer_itr, socket_opcode, SOCKET_OPCODE_LEN);
     buffer_itr += SOCKET_OPCODE_LEN;
     byte_count += SOCKET_OPCODE_LEN;
 
     node_addr = htons(node_addr); // Convert to network byte order
 
-    memcpy(buffer, &node_addr, SOCKET_NODE_ADDR_LEN);
+    memcpy(buffer_itr, &node_addr, SOCKET_NODE_ADDR_LEN);
     buffer_itr += SOCKET_NODE_ADDR_LEN;
     byte_count += SOCKET_NODE_ADDR_LEN;
 
     
-    memcpy(buffer, payload, payload_len);
+    memcpy(buffer_itr, payload, payload_len);
     buffer_itr += payload_len;
     byte_count += payload_len;
 
@@ -135,7 +135,7 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     int socket_fd = -1;
 
     connect_socket(&socket_fd);
-    printf("- Send socket connected to server\n");
+    // printf("- Send socket connected to server\n");
     
     // Send data to server
     // send(socket_fd, message, length, MSG_DONTWAIT);
@@ -210,13 +210,13 @@ int connect_socket(int *socket_fd) {
 
     *socket_fd = -1;
     // connect network server
-    fprintf(stderr, "try to conenct\n");
+    // fprintf(stderr, "try to conenct\n");
     if (connect(new_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         perror("connection failed\n");
         return -1;
     }
     
-    fprintf(stderr, "conencted\n");
+    // fprintf(stderr, "conencted\n");
     *socket_fd = new_socket_fd;
     return 0;
 }
