@@ -2,12 +2,6 @@ import serial
 import threading
 import time
 
-# ==== protocal constents ====
-escape_byte_bs = b'\xfa' # byte string of 0xfa
-escape_byte = escape_byte_bs[0] # int type == 0xfa == 250
-uart_start = b'\xff'
-uart_end = b'\xfe'
-
 class Uart_Task_Manager:
     def __init__(self, uart_port, uart_baud_rate):
         self.uart_port = uart_port
@@ -38,61 +32,29 @@ class Uart_Task_Manager:
             self.serial_connection = serial.Serial(self.uart_port, self.uart_baud_rate)
             print("connected to serial port", self.uart_port)
         except:
-            print("unable to connect to serial port", self.uart_port)
+            pass
+            # print("unable to connect to serial port", self.uart_port)
         
         
     def uart_event_handler(self, data):
         # print("recived uart data:")
         self.callback_func(data)
     
-    # for uart protocal,  -------------------- TB Tested --------------------------
+    # for uart protocal,  -------------------- TB Finish --------------------------
     def uart_decoder(self, data):
         # decode escape bytes
-        result = b''
-        
-        i = 0
-        while i < len(data):
-            byte = data[i] # python gets the int type of single byte
-            
-            if byte != escape_byte:
-                result += byte.to_bytes(1, 'big') # get the bytestring of this byte
-                i += 1 # processed 1 byte for normal byte
-                continue
-            
-            # byte == escape_byte, decode escaped byte
-            byte_encoded = data[i + 1]
-            byte_decoded = escape_byte ^ byte_encoded
-            result += byte_decoded.to_bytes(1, 'big') # get the bytestring of this byte
-            i += 2 # processed 2 byte for encoded byte
-        # while loop done
-        
-        print("[Encoded]", data)
-        print("[Decoded]", result)
-        return result
+        # TB Finish
+        return data
     
-    # for uart protocal, -------------------- TB Tested --------------------------
+    # for uart protocal, -------------------- TB Finish --------------------------
     def uart_encoder(self, data):
         # encode escape bytes
-        result = b''
-        for byte in data:
-            if byte < escape_byte:
-                result += byte.to_bytes(1, 'big') # get the bytestring of this byte
-                continue
-            
-            # byte >= escape_byte, encode escaped byte
-            byte_encoded = escape_byte ^ byte
-            result += escape_byte.to_bytes(1, 'big') # get the bytestring of this byte
-            result += byte_decoded.to_bytes(1, 'big') # get the bytestring of this byte
-        # while loop done
-        
-        return result
+        # TB Finish
+        return data
     
     def sent_data(self, data):
         if self.serial_connection != None:
-            data_encoded = uart_encoder(data)
-            self.serial_connection.write(uart_start) # spcial byte marking start
-            self.serial_connection.write(data_encoded)
-            self.serial_connection.write(uart_end)   # spcial byte marking end
+            self.serial_connection.write(data)
     
     def attack_callback(self, callback_func):
         self.callback_func = callback_func
@@ -101,22 +63,21 @@ class Uart_Task_Manager:
     # read the entire message base on protocal, -------------------- TB Finish --------------------------
     def uart_read_message(self):
         # read the entire message base on our uart escape byte protocal
-        # TB Test
+        # TB Finish, rn is the old 3 special end_of_message bytes
         data = b''
         while True:
             if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
                 byte = self.serial_connection.read() # Read and decode the data
-                # print(byte, end="-")
-                if byte == uart_start:
-                    # start of message
+                data += byte
+                if "[Ignore_prev]".encode() in data:
+                    # ignore the inital module setup message from esp
+                    # used for removing the inital uart signal from module lunching, not in our control
                     data = b''
                     continue
-                if byte == uart_end:
+                    
+                if data[-3:] == "[E]".encode():
                     # found end of message sequence
                     break
-
-                data += byte
-        # end of while loop
         
         # decode the raw uart signals
         return self.uart_decoder(data)
@@ -140,7 +101,7 @@ class Uart_Task_Manager:
                     pass
             else:
                 # No connection
-                print("Uart trying to reconnect...")
+                # print("Uart trying to reconnect...")
                 self.uart_connect()
                 time.sleep(3)
     
@@ -218,7 +179,7 @@ class Socket_Manager():
         # pass data to Net_Manager's function to handler and return the response
         response_bytes = self.callback_func(data)
         
-        client_socket.send(response_bytes)
+        # client_socket.send(response_bytes)
         client_socket.close()
     
     
