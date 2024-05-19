@@ -8,6 +8,7 @@
 
 // document all the folder and info files
 // - SOCKET_OPCODE located in socket.c
+// - debug macro, good practice
 
 int edge_robot_request_handler(uint16_t node_addr) {
     // for demo purpose, accept one request and reject one request
