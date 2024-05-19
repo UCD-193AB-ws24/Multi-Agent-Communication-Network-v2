@@ -116,21 +116,22 @@ int main(){
     pthread_t tid;
     tid = init_socket(socket_message_callback);
     printf("finished socket init\n");
-    char* msg_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
-    char* response_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
-    response_buffer[30] = '\0';
+    
+    // char* msg_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
+    // char* response_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
+    // response_buffer[30] = '\0';
 
-    // fake uartmessage
-    strcpy(msg_buffer, "<Q>");
-    u_int16_t node_addr = 0x0500;
-    memcpy(msg_buffer + strlen("<Q>"), &node_addr, 2);
-    size_t msg_len = strlen("<Q>") + 2;
-    char *payload = "this is request";
-    memcpy(msg_buffer + msg_len, payload, strlen(payload));
-    msg_len += strlen(payload);
-    msg_buffer[msg_len] = '\0';
-    printf("%s\n",msg_buffer);
-    socket_sent(msg_buffer, msg_len, NULL, 0);
+    // // fake uartmessage
+    // strcpy(msg_buffer, "<Q>");
+    // u_int16_t node_addr = 0x0500;
+    // memcpy(msg_buffer + strlen("<Q>"), &node_addr, 2);
+    // size_t msg_len = strlen("<Q>") + 2;
+    // char *payload = "this is request";
+    // memcpy(msg_buffer + msg_len, payload, strlen(payload));
+    // msg_len += strlen(payload);
+    // msg_buffer[msg_len] = '\0';
+    // printf("%s\n",msg_buffer);
+    // socket_sent(msg_buffer, msg_len, NULL, 0);
 
 
     // wait for thread to finish
