@@ -69,7 +69,6 @@ int edge_robot_request_handler(uint16_t node_addr) {
     }
 }
 
-
 void socket_message_callback(char* socket_msg) {
     printf("socket callback trigered\n");
     int opcode_num = getOpcodeNum(socket_msg);
@@ -116,22 +115,50 @@ int main(){
     pthread_t tid;
     tid = init_socket(socket_message_callback);
     printf("finished socket init\n");
-    
-    // char* msg_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
-    // char* response_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
-    // response_buffer[30] = '\0';
+    char* msg_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
+    char* response_buffer = (char* ) malloc(BUFFER_SIZE * sizeof(char));
+    response_buffer[30] = '\0'; // for testing log printing
 
-    // // fake uartmessage
-    // strcpy(msg_buffer, "<Q>");
-    // u_int16_t node_addr = 0x0500;
-    // memcpy(msg_buffer + strlen("<Q>"), &node_addr, 2);
-    // size_t msg_len = strlen("<Q>") + 2;
-    // char *payload = "this is request";
-    // memcpy(msg_buffer + msg_len, payload, strlen(payload));
-    // msg_len += strlen(payload);
-    // msg_buffer[msg_len] = '\0';
-    // printf("%s\n",msg_buffer);
-    // socket_sent(msg_buffer, msg_len, NULL, 0);
+
+    uint16_t node_addr = 5; // first node connected
+    size_t msg_len = socket_craft_message_example(msg_buffer, BUFFER_SIZE, "[GET]", node_addr, "GPS", 3);
+    msg_buffer[msg_len] = '\0';  // for testing log printing
+
+    while (1) {
+        printf("=> C-API request \"%s\" sent\n", msg_buffer);
+        int error_flag = socket_sent(msg_buffer, msg_len, response_buffer, BUFFER_SIZE);
+        printf("<= Server response\"%s\" recived\n", response_buffer);
+        // response_buffer contains only response to socket_sent, not socket opcode in it
+        
+        // S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
+        // F|error_message_length|error_message
+        char* byte_itr = response_buffer;
+        
+        if (*byte_itr != 'S') {
+            // failed
+            printf("Failed to get data");
+            sleep(2);
+            continue;
+        }
+
+        // example decodeing, format of data agreed with arduion-c-api side
+        char* byte_itr = response_buffer + strlen("GPS") + 1;
+        int8_t data_len = (int8_t)byte_itr[0]; // will be 6
+        byte_itr += 1;
+
+        int8_t node_amount = (int8_t)byte_itr[0]; // will be 1
+        byte_itr += 1;
+
+        int16_t n1 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
+        byte_itr += 2;
+        int16_t n2 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
+        byte_itr += 2;
+        int16_t n3 = (int16_t)(byte_itr[1] << 8 | byte_itr[0]);
+        byte_itr += 2;
+        fprintf(stderr, " * Node-%d GPS:%d bytes (%d,%d,%d)\n", node_addr, data_len, n1, n2, n3);
+        
+        sleep(2);
+    }
 
 
     // wait for thread to finish
