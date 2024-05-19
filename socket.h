@@ -14,6 +14,10 @@
 #define BACKLOG 100
 #define BUFFER_SIZE 1024
 
+
+#define SOCKET_OPCODE_LEN 5    // can be veried base on need
+#define SOCKET_NODE_ADDR_LEN 2 // need to be 2
+
 typedef void (*Callback) (char*);
 
 // struct init_socket_return_type{
