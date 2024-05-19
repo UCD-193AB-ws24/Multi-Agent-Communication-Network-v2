@@ -22,7 +22,7 @@
 #define SOCKET_NODE_ADDR_LEN 2 // need to be 2
 #define socket_op_amount 2
 
-extern const char scoket_opcode[socket_op_amount][SOCKET_OPCODE_LEN + 1]; // +1 for '\0'
+extern const char SOCKET_OPCODE[socket_op_amount][SOCKET_OPCODE_LEN + 1]; // +1 for '\0'
 
 typedef void (*Callback) (char*);
 

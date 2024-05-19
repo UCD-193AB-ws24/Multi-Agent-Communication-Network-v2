@@ -1,6 +1,6 @@
 #include "socket.h"
 
-const char scoket_opcode[socket_op_amount][SOCKET_OPCODE_LEN + 1] = { // +1 for '\0'
+const char SOCKET_OPCODE[socket_op_amount][SOCKET_OPCODE_LEN + 1] = { // +1 for '\0'
   "[REQ]", "EMPTY"
 };
 
@@ -84,7 +84,7 @@ pthread_t init_socket(Callback cb){ //return socket_fd so it can be closed later
 
 int getOpcodeNum(char* opcode) {
     for (int i = 0; i < socket_op_amount; ++i) {
-        if (strncmp(opcode, scoket_opcode[i], strlen(scoket_opcode[i])) == 0) {
+        if (strncmp(opcode, SOCKET_OPCODE[i], strlen(SOCKET_OPCODE[i])) == 0) {
             return i;
         }
     }
