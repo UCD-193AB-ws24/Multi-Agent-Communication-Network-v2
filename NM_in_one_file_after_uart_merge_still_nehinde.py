@@ -164,7 +164,7 @@ class Socket_Manager():
         self.send_socket = None             # The Main communication Socket for python sending to C-API
         self.send_address = None
         self.callback_func = None
-        
+        self.disconnect = True
         self.initialize_socket()
     
     def initialize_socket(self):
@@ -181,11 +181,25 @@ class Socket_Manager():
                 
     def connect_send_socket(self): # -------------------- TB Finish --------------------------
         self.server_socket.listen(1) # 1 space in queue is enough
-        send_socket, send_address = self.server_socket.accept()
+        # send_socket, send_address = self.server_socket.accept()
         
         # ====== inital extra handshake to confim it belong to our project =======
         # ====== verify is a send_socket (C_API's listen socket) =======
         # TB Finish
+        # ------------ TB Review ------------------------
+        print("disconnection: " + str(self.disconnect))
+        while (self.disconnect == True):
+            send_socket, send_address = self.server_socket.accept()
+            print("here")
+            data = send_socket.recv(self.PACKET_SIZE)
+            print("data: ", data)
+            if data != b'[syn]\x00':
+                send_socket.send(b'[err]-listen_socket_disconnected')
+                send_socket.close()
+            else:
+                print("connected to listen")
+                send_socket.send(b'[ack]\x00')
+                self.disconnect = False
         # ====== end of confirmation
         self.send_socket = send_socket
         self.send_address = send_address
@@ -201,6 +215,11 @@ class Socket_Manager():
         self.server_socket.listen(5)
         print(f"Listening on 'localhost':{self.server_listen_port} for C-API socket connection")
         while True:
+            #------TB Review : reconnection----------------
+            if(self.disconnect == True):
+                print("---------------------------reconnecting------------------------------")
+                self.connect_send_socket()
+            #----------------------------------------------
             client_socket, address = self.server_socket.accept()
             print(f" - Request connection from C-API in {address} has been established.")
             
@@ -231,7 +250,18 @@ class Socket_Manager():
         print("sending data")
         if self.send_socket != None:
             # socket.sento(bytes, addr)
-            self.send_socket.sendall(data)
+            print("send_data called")
+            try:
+                self.send_socket.sendall(data)
+            except socket.error as e:
+                err_no = e.errno
+                error_str = e.strerror
+                if(err_no == 32 or err_no == 104 or err_no == 111):
+                    print("Client socket disconnected")
+                    self.send_socket.close()
+                    self.disconnect = True
+                if err_no == 110:
+                    print("Connection timeout")
         else:
             print("No socket connected")
             # implment attemps of reconnection

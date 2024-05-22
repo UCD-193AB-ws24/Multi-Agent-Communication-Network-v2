@@ -43,11 +43,28 @@ void *listen_thread_func (void* in_args){
 }
 
 pthread_t init_socket(Callback socket_message_callback){ //return socket_fd so it can be closed later
-    int socket_fd;
-    connect_socket(&socket_fd);
-    printf("Read socket connected to server\n");
+    int socket_fd = -1;
+    // printf("Read socket connected to server\n");
     // socket_sent("[INIT]", 6); // TB Finish, send message to confirm this is the C-API listen socekt
-
+    int is_listening_connected = 0;
+    while(is_listening_connected == 0){
+        connect_socket(&socket_fd);
+        printf("Read socket connected to server\n");
+        // socket_sent("[INIT]", 6); // TB Finish, send message to confirm this is the C-API listen socekt
+        // TB Review
+        char* handshake_buffer = (char* ) malloc(6 * sizeof(char));
+        strcpy(handshake_buffer,"[syn]");
+        // to-do: check if the socket with socket_fd is still open.
+        if(socket_fd != -1){
+            send(socket_fd, handshake_buffer, 6, 0);
+            printf("sent\n");
+            recv(socket_fd, handshake_buffer, 6, 0);
+            printf("received: %s\n", handshake_buffer);
+            if(strcmp (handshake_buffer, "[ack]") == 0){
+                is_listening_connected = 1;
+            }
+        }
+    }
     // spawn a thread
     pthread_t tid;
     struct listen_thread_arg* args = (struct listen_thread_arg*)malloc(sizeof(struct listen_thread_arg));
