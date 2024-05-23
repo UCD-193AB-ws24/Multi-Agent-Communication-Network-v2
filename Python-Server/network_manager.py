@@ -1,5 +1,6 @@
 import struct
 import time
+from node import Node
 
 shared_node_list = []
 

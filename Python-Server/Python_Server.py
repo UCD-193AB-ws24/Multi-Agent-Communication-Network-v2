@@ -3,7 +3,6 @@ import os
 from network_manager import Network_Manager
 from uart_manager import Uart_Manager
 from socket_manager import Socket_Manager
-from node import Node
 
 PACKET_SIZE = 1024
 server_socket_port = 5001
