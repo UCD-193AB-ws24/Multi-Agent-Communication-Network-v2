@@ -79,26 +79,6 @@ pthread_t init_socket(Callback socket_message_callback){ //return socket_fd so i
     return tid;
 }
 
-// int socket_sent(char* message, size_t length) {
-//     static int send_socket_fd = -1;
-//     static struct sockaddr_in server_addr;
-
-//     if (send_socket_fd == -1) {
-//         connect_socket(&send_socket_fd);
-//         printf("Send socket connected to server\n");
-//     }
-    
-    
-//     // Send data to server
-//     // send(send_socket_fd, message, length, MSG_DONTWAIT);
-//     int byte_sent = send(send_socket_fd, message, length, 0);
-//     printf("- Message sent to server [%s]\n", message);
-    
-//     // close(send_socket_fd);
-//     return byte_sent;
-// }
-
-
 int getOpcodeNum(char* opcode) {
     for (int i = 0; i < socket_op_amount; ++i) {
         if (strncmp(opcode, SOCKET_OPCODE[i], strlen(SOCKET_OPCODE[i])) == 0) {
