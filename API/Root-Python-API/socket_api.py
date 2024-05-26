@@ -8,6 +8,10 @@ SOCKET_OPCODE_LEN = 5     # can be veried base on need
 SOCKET_NODE_ADDR_LEN = 2  # need to be 2
 socket_op_amount = 2
 
+# example
+# node_addr = struct.unpack('!H', node_addr)[0] # unpack 2 byte and converts them from network byte order to host byte order
+
+
 class Socket_Manager():
     def __init__(self, server_addr):
         # set up the parameters
@@ -38,6 +42,10 @@ class Socket_Manager():
         # return a connecetd socket or None for fail to connect
         pass
     
+
+# def encode network endianess handler function
+
+# def unpack network endianess handler function
     
     
 # other utility function provide by our API
