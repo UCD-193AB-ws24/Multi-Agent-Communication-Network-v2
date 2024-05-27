@@ -1,6 +1,6 @@
 from socket_api import Socket_Manager
-from socket_api import getOpCodeNum, parseNodeAddr
-
+from socket_api import getOpCodeNum, parseNodeAddr, craft_message_example
+import time
 # self_port = 6001
 server_port = 5001
 server_ip = "localhost"
@@ -37,20 +37,27 @@ def notify(opcode, data):
 def edge_robot_request_handler_example(node_addr):
     pass
 
-def socket_message_callback_example(message_data: bytes):
-    pass
 
-def data_request_example(node_addr, data_type):
-    pass
+def socket_message_callback_example(message_data: bytes):
+    print(f"Received message: {message_data.decode()}")
+
+def data_request_example(socket_manager, node_addr, data_type):
+    message = craft_message_example( "[GET]", node_addr, data_type)
+    response = socket_manager.socket_sent(message)
+    if response == b'f':
+        print("Failed to get data")
+        return
+
 
 def main():
     server_addr = (server_ip, server_port)
-    socket_api = Socket_Manager(server_addr)
-    socket_api.run_socket_listen_thread(socket_message_callback_example)
+    socket_api = Socket_Manager(server_addr, socket_message_callback_example)
+    socket_api.run_socket_listen_thread()
     
     while True:
         # print("Programe still running...")
-        time.sleep(1)
+        data_request_example(socket_api,5, "GPS")
+        time.sleep(2)
 
 if __name__ == "__main__":
     main()

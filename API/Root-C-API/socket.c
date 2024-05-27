@@ -1,5 +1,5 @@
 #include "socket.h"
-
+// currently does not handle relunch the socket
 const char SOCKET_OPCODE[socket_op_amount][SOCKET_OPCODE_LEN + 1] = { // +1 for '\0'
   "[REQ]", "EMPTY"
 };
@@ -15,7 +15,7 @@ void *listen_thread_func (void* in_args){
     int socket_fd = args->socket_fd;
     Callback callback_func = args->cb;
 
-    printf("Listening on port %d...\n", PORT);
+    printf("Listening on port %d...\n", SERVER_PORT);
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
 
@@ -139,9 +139,10 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     int byte_sent = send(socket_fd, message, length, 0);
     printf("=> Message sent to server [%s]\n", message);
 
+    // if it doen't expect a response
     if(response_buffer == NULL){
         close(socket_fd);
-        return 1;
+        return 0;
     }
     // ==== timeout for response ====
     struct timeval timeout;
@@ -156,10 +157,12 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     printf("- wating on response...\n");
      if (ready == -1) {
         perror("Select error");
-        exit(EXIT_FAILURE);
+        close(socket_fd)
+        return -1;
     } else if (ready == 0) {
         printf("Timeout occurred\n");
-        exit(EXIT_FAILURE);
+        close(socket_fd)
+        return -1;
     }
 
     // Check if sockfd is ready for reading
@@ -167,17 +170,17 @@ int socket_sent(char* message, size_t length, char* response_buffer, size_t buff
     int bytes_received = recv(socket_fd, response_buffer, buffer_len, 0);
     if (bytes_received == -1) {
         perror("Receive error");
-        exit(EXIT_FAILURE);
+        return -1;
     } else if (bytes_received == 0) {
         printf("Connection closed from server\n");
-        exit(EXIT_SUCCESS);
+        return -1;
     } else {
         // Data received successfully
         printf("<= Received %d bytes: %s\n", bytes_received, response_buffer);
     }
     
     close(socket_fd);
-    return 1; // for success
+    return 0; // for success
 }
 
 int connect_socket(int *socket_fd) {

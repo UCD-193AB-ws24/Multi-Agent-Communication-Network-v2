@@ -80,6 +80,12 @@ class Socket_Manager():
 
         # read the request from C-API from socket
         data = client_socket.recv(self.PACKET_SIZE)
+        #if the socket is trying to handshake meaning client was disconnected
+        if(data == b'[syn]\x00'):
+            self.disconnect = True
+            client_socket.send(b'[err]-listen_socket_disconnected')
+            client_socket.close()
+            return
         # print("Received Request:", data.decode())
 
         # pass data to Net_Manager's function to handler and return the response
