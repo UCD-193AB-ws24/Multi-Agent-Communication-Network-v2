@@ -151,11 +151,13 @@ def Test_0_connect_10_node(socket_api):
             if active_count != new_active_count:
                 print(f" - {active_count} node connected with {round(time_elapsed, 2)} second elapsed")
             
-        
+            time.sleep(0.1) # checking every 0.1 second
+            
+        # check if is a timeout that break the loop
         if active_nodes < node_amount:
             continue
         
-        
+        # test succeed, all node connecetd
         print(f"All {node_amount} node conneceted back, test finished")
         # log result
         attempts = max_attempts + 1
@@ -165,5 +167,4 @@ def Test_0_connect_10_node(socket_api):
     if attemps == max_attempts + 1:
         print("Test0 Succeed")
         # print the result
-    
     # ----------- Test 0 -----------
