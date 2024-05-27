@@ -16,3 +16,10 @@
 # 7 - Record the Timestamp of each node connected 
 
 
+from socket_api import Socket_Manager
+from socket_api import getOpCodeNum, parseNodeAddr
+
+def Test_0_connect_10_node():
+    # check if uart is running, root is runing, has 10 node
+    # FLDTS
+    

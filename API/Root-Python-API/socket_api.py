@@ -13,15 +13,16 @@ socket_op_amount = 2
 
 
 class Socket_Manager():
-    def __init__(self, server_addr):
+    def __init__(self, server_addr, client_socket_callback):
         # set up the parameters
+        self.client_socket_callback = client_socket_callback
         pass
         
-    def run_socket_listen_thread(self, client_socket_callback):
+    def run_socket_listen_thread(self):
         # creat threads, attach callback
         pass
     
-    def socket_listening_thread(self, client_socket_callback):
+    def socket_listening_thread(self):
         # actual thread function responsible for
         # - connect main listen socket
         # - triger callback when there is message
