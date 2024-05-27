@@ -6,6 +6,7 @@ from datetime import datetime
 # define constents
 SOCKET_OPCODE_LEN = 5     # can be veried base on need
 SOCKET_NODE_ADDR_LEN = 2  # need to be 2
+BLE_MESH_BOARDCAST_ADDR = 255
 socket_op_amount = 2
 
 # example
@@ -30,10 +31,6 @@ class Socket_Manager():
         # - close the socket when finish (use finally so it close on exception as well)
         pass
     
-    def craft_message_example(self, socket_opcode, node_addr, msg_payload) -> bytes:
-        # return the bytes of crafted message
-        pass
-    
     def socket_sent(self, data: bytes) -> bytes:
         # return the responsed bytes or Fail bytes
         # connect a new one-time use send socket
@@ -43,6 +40,10 @@ class Socket_Manager():
         # return a connecetd socket or None for fail to connect
         pass
     
+
+def craft_message_example(self, socket_opcode, node_addr, msg_payload) -> bytes:
+    # return the bytes of crafted message
+    pass
 
 # def encode network endianess handler function
 
