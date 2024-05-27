@@ -4,6 +4,7 @@
 # 'BCAST' boardcast 
 # 'BCOPY' boardcast copy / confirmed recived
 # 'RST-R' reset root module
+# 'CNTAC' get active node count
 #
 # uart version:
 # 'BCT' for boardcast in uart
@@ -28,7 +29,7 @@
 # 3 - Python start timer and Broadcast ‘START’ to all ras-pi & reset ESP-root
 # 4 - Ras-pi restart the ESP-edge
 # 5 - Python stop timer when all 10 nodes are connected
-# 6 - Python Broadcast ‘FINISH’ to stop the current test
+# 6 - Python Broadcast ‘FINISH’ to stop the current test # no need for test-0 reconnect
 # 7 - Record the Timestamp of each node connected 
 
 import time
@@ -83,7 +84,7 @@ def boardcast_and_wait_for_confirm(socket_api, test_name, node_amount, timeout):
     return True
 
 def send_command(socket_api, opcode, node_addr, payload):
-    # send command and confirm executed, not needing actual data response
+    # send command and confirm executed successfully
     message = craft_message_example(opcode, node_addr, payload) 
     response = socket_api.socket_sent(message)
     if response[0:1] = b'F': # socket command faild
@@ -93,46 +94,76 @@ def send_command(socket_api, opcode, node_addr, payload):
         except:
             pass
         print(f"Socket Command '{opcode}' failed, Error: {error}")
-        return False
+        return (False, error)
     
-    return True
+    # succeed
+    response = response[1:]
+    return (True, response)
 
 def Test_0_connect_10_node(socket_api):
     # check if uart is running, root is runing, has 10 node
     # FLDTS
     global network_node_amound, boardcast_confirmed_node
     attempts = 0
-    timeout = 10
+    max_attempts = 3
+    boardcast_timeout = 10
+    conenct_node_timeout = 20
     node_amount = 10
     
     # subscribe("[NET]", test_0_network_status_callback)
     # ----------- Test 0 -----------
-    while attempts < 3:
+    while attempts < max_attempts:
         attempts += 1
-        print(f"\nStarting test-0 attempt-{attemps})
+        print(f"\n===== Starting test-0 with attempt-{attemps}/{max_attempts} ===== ")
         
         # boardcasr to initilize test on edge device
-        success = boardcast_and_wait_for_confirm(socket_api, "TEST0", node_amount, timeout)
+        success = boardcast_and_wait_for_confirm(socket_api, "TEST0", node_amount, boardcast_timeout)
         if !success:
             continue
+        print(f"Initilied Test on edge by boardcast")
         
         # boardcasr to start test on edge device
-        success = send_command(socket_api, "BCAST", 0, "START") 
+        success, _ = send_command(socket_api, "BCAST", 0, "START") 
         if !success:
             continue
-
+        print(f"Started Test on edge by boardcast")
+        
         # reset root
-        success = send_command(socket_api, "RST-R", 0, "") 
+        success, _ = send_command(socket_api, "RST-R", 0, "") 
         if !success:
+            continue
+        print(f"Root reseted, wating on edge connect back")
+        
+        # check active node count on network
+        start_time = time.time
+        current_time = start_time
+        time_elapsed = 0
+        active_count = 0
+        while active_nodes < node_amount:
+            current_time = time.time
+            time_elapsed = current_time - start_time
+            if time_elapsed > conenct_node_timeout:
+                print(f"Timeout Trigered, failed to connect {node_amount} nodes in {conenct_node_timeout}")
+                break
+                
+            success, response = send_command(socket_api, "CNTAC", 0, "")
+            new_active_count = response[0]
+            if active_count != new_active_count:
+                print(f" - {active_count} node connected with {round(time_elapsed, 2)} second elapsed")
+            
+        
+        if active_nodes < node_amount:
             continue
         
-        # check node count on network
-        message = craft_message_example("NDCNT", 0, "")
-              
-        socket_api.socket_sent(message)
+        
+        print(f"All {node_amount} node conneceted back, test finished")
+        # log result
+        attempts = max_attempts + 1
+        break
     
-    
-    
-    
+    # test finished
+    if attemps == max_attempts + 1:
+        print("Test0 Succeed")
+        # print the result
     
     # ----------- Test 0 -----------
