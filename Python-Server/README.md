@@ -30,13 +30,12 @@
 #   encode: \fa Xor \ff = \05
 #   decode: \fa Xor \05 = \ff
 #
-# **** UART KEY STRUCT ***
+# ******** UART KEY STRUCT *******
 # need to be followed by all uart messsage
 #               Msg_meta            ||     Payload
 #  2_byte_node_addr|3_byte_msg_type ||     payload
 #
-#
-# **** KEY STRUCT ***
+# ********** KEY STRUCT *********
 #
 # => incoming data update
 # node_addr|[D]|| size_n|data_type|data_length_byte|data|...|data_type|data_length_byte|data
@@ -53,6 +52,10 @@
 #
 #  * NINFO|'\n'                                                   // get network info
 #  * SEND-|2_byte_node_addr|1_byte_msg_len|message/data|'\n'      // send message/cmd to edge
+#
+# => incoming network info
+# root_addr|NET|| node_amount|node_0_addr|node_0_uuid|....|node_n_addr|node_n_uuid
+#    2     | 3 ||     1      |   2 byte  |  16 byte  |....|   2 byte  |  16 byte  |
 #
 # =========================== temp uart protocal ================================
 #

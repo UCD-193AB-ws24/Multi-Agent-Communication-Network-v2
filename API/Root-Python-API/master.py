@@ -44,7 +44,7 @@ def socket_message_callback_example(message_data: bytes):
 def data_request_example(socket_manager, node_addr, data_type):
     message = craft_message_example( "[GET]", node_addr, data_type)
     response = socket_manager.socket_sent(message)
-    if response == b'f':
+    if response[0:1] == b'F':
         print("Failed to get data")
         return
 
