@@ -4,6 +4,18 @@
 # "[E]" - end of message delimiter, defined in networkConfig
 #
 #
+#
+# our API one side to ther other (root-api -> edge device-api OR edge device-api -> root-api):
+# Root-client-API / Edge-client-API Sends:
+# ble_network_command | dst_node_addr |          message        |
+#       5 byte        |     2 byte    | 3 byte opcode | payload |
+#
+# Edge-client-API / Root-client-API Sends:
+#  src_node_addr |          message        |
+#     2 byte     | 3 byte opcode | payload |
+#
+# message is the same, address will be dst for sender, src for reciver
+#
 # =========================== socket protocal ================================
 # => incoming
 # [CMD]payload

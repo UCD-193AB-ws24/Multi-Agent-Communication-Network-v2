@@ -168,18 +168,27 @@ class Network_Manager():
             print("[Uart] can't parse opcode", op_code)
             return b'F'
         
-        # Process Message
+        ############## Opcodes only updates python server ############## 
         if op_code == "[D]":
             # Data update
             self.updateNodeData(node_addr, payload)
             
         
+        ############## other Opcodes pass to client-API using socket ##############
+        self.socket_sent(data)
         #--------TB_review : response----------------
-        if op_code == "<Q>":
-            # restructure message base on socket message format, transfer the request to C-Client-API
-            socket_op_code = "[REQ]".encode()
-            request_msg = socket_op_code + node_addr.to_bytes(2, byteorder='little') + payload
-            self.socket_sent(request_msg)
+        # if op_code == "<Q>":
+        #     # restructure message base on socket message format, transfer the request to C-Client-API
+        #     socket_op_code = "[REQ]".encode()
+        #     request_msg = socket_op_code + node_addr.to_bytes(2, byteorder='little') + payload
+        #     self.socket_sent(request_msg)
+        
+        # new version, TB Review, s=pass opcode to socket like what they are
+        # if op_code == "REQ": 
+        #     # restructure message base on socket message format, transfer the request to C-Client-API
+        #     socket_op_code = "[REQ]".encode()
+        #     request_msg = socket_op_code + node_addr.to_bytes(2, byteorder='little') + payload
+        #     self.socket_sent(request_msg)
         # -------------------------------------------
 
         # make a case let custom (unindentified cases) pass to socket
