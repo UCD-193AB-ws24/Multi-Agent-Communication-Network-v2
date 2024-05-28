@@ -95,7 +95,7 @@ class Network_Manager():
             data_type = payload[2:5].decode('utf-8')
             return self.getNodeData(data_type, node_addr)
             
-        #----------TB_review : response--------------
+        #----------TB_review : response-------------- nne to fix
         if op_code == "[REQ]":
             # restructure response to Edge Request base on uart format, send back to edge node
             node_addr = data[5:7]

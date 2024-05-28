@@ -1,17 +1,25 @@
 ######################################################################################
-# New Opcodes to be agreeed with python server (socket) and edge device (uart)
-# socket:
-# 'BCAST' boardcast 
-# 'BCOPY' boardcast copy / confirmed recived
+# ble_network_command | dst_node_addr |          message        |
+#       5 byte        |     2 byte    | 3 byte opcode | payload |
+#
+# === Network Command  === (5 byte)
+# 'NINFO' get network info
+# 'SEND-' send message
+# 'BCAST' boardcast message
 # 'RST-R' reset root module
-# 'CNTAC' get active node count
+# 'ACT-C' get active node count
 #
-# uart version:
-# 'BCT' for boardcast in uart
-# 'BCY' for boardcast copy in uart
-# 'RST' reset root module
+# '[GET]' get node data
+# 
 #
+# === API opcode / message type (opcode) === (3 byte)
+# 'BCT' for boardcasted message, expecting boardcast copy
+# 'BCY' for boardcast copy message
 #
+# 'NET' Network Information message
+# 'NOD' Node Connecetd update message
+# 'RST' root module reseted
+# '[D]' node data
 #
 ######################################################################################
 

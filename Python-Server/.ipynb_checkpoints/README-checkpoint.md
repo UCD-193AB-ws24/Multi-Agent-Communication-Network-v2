@@ -1,4 +1,26 @@
 ``` python
+######################################################################################
+# === Network Command  ===
+# 'NINFO' get network info
+# 'SEND-' send message
+# 'BCAST' boardcast message
+# 'RST-R' reset root module
+# 'ACT-C' get active node count
+#
+# '[GET]' get node data
+# 
+#
+# === API opcode / message type === 
+# 'BCT' for boardcasted message, expecting boardcast copy
+# 'BCY' for boardcast copy message
+#
+# 'NET' Network Information message
+# 'NOD' Node Connecetd update message
+# 'RST' root module reseted
+# '[D]' node data
+#
+######################################################################################
+#
 # Design Note
 #
 # =========================== API Message passing format ================================
@@ -53,6 +75,11 @@
 #  2_byte_node_addr|3_byte_msg_type |     payload
 # *******************************************
 #
+# (uart) ===== Root Full Reset =====
+# => incoming 
+# root_addr|RST|
+#    2     | 3 |
+#
 # (uart) ===== Data Update from edge-API =====
 # => incoming data update
 # node_addr|[D]| size_n|data_type|data_length_byte|data|...|data_type|data_length_byte|data
@@ -62,6 +89,11 @@
 # => incoming socket Network Status Update
 # root_addr|NET| node_amount|node_0_addr|node_0_uuid|....|node_n_addr|node_n_uuid
 #    2     | 3 |     1      |   2 byte  |  16 byte  |....|   2 byte  |  16 byte  |
+#
+# (uart) ===== Node Connecetd update =====
+# => incoming 
+# root_addr|NOD| node_addr | node_uuid |
+#    2     | 3 |    2 byte |  16 byte  |
 #
 # =========================== uart encoding ================================
 #
