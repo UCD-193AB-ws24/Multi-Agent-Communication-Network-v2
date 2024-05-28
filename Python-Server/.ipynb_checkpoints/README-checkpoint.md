@@ -3,7 +3,7 @@
 # === Network Command  ===
 # 'NINFO' get network info
 # 'SEND-' send message
-# 'BCAST' boardcast message
+# 'BCAST' broadcast message
 # 'RST-R' reset root module
 # 'ACT-C' get active node count
 #
@@ -11,8 +11,8 @@
 # 
 #
 # === API opcode / message type === 
-# 'BCT' for boardcasted message, expecting boardcast copy
-# 'BCY' for boardcast copy message
+# 'ECH' for echo message, expecting copy
+# 'CPY' for copy message on recived 'ECH'  or 
 #
 # 'NET' Network Information message
 # 'NOD' Node Connecetd update message
@@ -121,6 +121,7 @@
 #
 # Work Pending finish (ctr-f "TB Finish")
 # Work Pending review (ctr-f "TB Review")
+# Work Pending fix (ctr-f "TB Fix")
 # 
 # ----------------- wating finishing ----------------------------
 #

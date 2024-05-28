@@ -5,7 +5,7 @@
 # === Network Command  === (5 byte)
 # 'NINFO' get network info
 # 'SEND-' send message
-# 'BCAST' boardcast message
+# 'BCAST' broadcast message
 # 'RST-R' reset root module
 # 'ACT-C' get active node count
 #
@@ -13,8 +13,8 @@
 # 
 #
 # === API opcode / message type (opcode) === (3 byte)
-# 'BCT' for boardcasted message, expecting boardcast copy
-# 'BCY' for boardcast copy message
+# 'ECH' for echo message, expecting copy
+# 'CPY' for copy message on recived 'ECH'
 #
 # 'NET' Network Information message
 # 'NOD' Node Connecetd update message
@@ -42,58 +42,70 @@
 
 import time
 from socket_api import Socket_Manager  # class object
-from socket_api import craft_message_example, getOpCodeNum, parseNodeAddr  # function
-from socket_api import BLE_MESH_BOARDCAST_ADDR # constents
+from socket_api import craft_message_example, parseNodeAddr  # function
 from master import subscribe, unsubscribe
 from master import network_info as net_info
 
 # globl variable so it can be accessed by all test and reused
 network_node_amound = 0
 current_test = ""
-boardcast_confirmed_node = []
+broadcast_confirmed_node = []
 
 
-def field_test_boardcast_confirm_callback(data):
-    node_addr = parseNodeAddr(data[0:2])
-    payload = data[2:]
+def field_test_broadcast_confirm_callback(message: bytes):
+    node_addr = parseNodeAddr(message[0:2])
+    opcode = message[2:5] # subscriped opcode 'CPY'
+    payload = message[5:]
+    
     try:
         payload = payload.decode()
     except:
         print(f"failed to decode payload {payload}")
-        
-    if payload == current_test:
-        boardcast_confirmed_node.append(node_addr)
-
-def boardcast_and_wait_for_confirm(socket_api, test_name, node_amount, timeout):
-    boardcast_confirmed_node = []
-    current_test = test_name
-    subscribe("BCOPY", field_test_boardcast_confirm_callback)
+        return
     
-    # boardcast
-    message = craft_message_example("BCAST", 0, test_name) 
+    if payload[0] != "I":
+        print(f"wrong copy message, not 'I' - test initialization")
+        return
+        
+    test_name = payload[1:]
+    if test_name == current_test:
+        broadcast_confirmed_node.append(node_addr)
+
+def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_amount, timeout):
+    broadcast_confirmed_node = []
+    current_test = test_name
+    
+    # subscribe on copy message that will get sendback from edge 
+    # after broadcasting 'ECH' message
+    subscribe("CPY", field_test_broadcast_confirm_callback)
+    
+    # broadcast 'ECH' (echo) message - expecting copy from edge
+    #            test  initialize  test_name
+    message_str = "TST" + "I" + test_name
+    message_byte = craft_message_example("BCAST", 0, message_str.encode()) 
     socket_api.socket_sent(message)
 
     # timeout
     start_time = time.time
     timeout = 10
 
-    while len(boardcast_confirmed_node) < node_amount:
+    while len(broadcast_confirmed_node) < node_amount:
         current_time = time.time
         if current_time - start_time > timeout:
-            print(f"Faild to confirm {test_name} boardcast with edge device")
-            print(f" - {len(boardcast_confirmed_node)} copied boardcast message")
-            unsubscribe("BCOPY", field_test_boardcast_confirm_callback)
+            print(f"Faild to confirm {test_name} broadcast with edge device")
+            print(f" - {len(broadcast_confirmed_node)} copied broadcast message")
+            unsubscribe("CPY", field_test_broadcast_confirm_callback)
             return False
         
         time.sleep(0.1) # check every 0.1 second
     
     # recived all confirmation
-    unsubscribe("BCOPY", field_test_boardcast_confirm_callback)
+    unsubscribe("CPY", field_test_broadcast_confirm_callback)
     return True
 
-def send_command(socket_api, opcode, node_addr, payload):
+def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> (bool, bytes):
     # send command and confirm executed successfully
-    message = craft_message_example(opcode, node_addr, payload) 
+    message = craft_message_example(command, node_addr, payload) 
     response = socket_api.socket_sent(message)
     if response[0:1] = b'F': # socket command faild
         error = response[1:]
@@ -101,7 +113,7 @@ def send_command(socket_api, opcode, node_addr, payload):
             error = error.decode()
         except:
             pass
-        print(f"Socket Command '{opcode}' failed, Error: {error}")
+        print(f"Socket Command '{command}' failed, Error: {error}")
         return (False, error)
     
     # succeed
@@ -111,10 +123,10 @@ def send_command(socket_api, opcode, node_addr, payload):
 def Test_0_connect_10_node(socket_api):
     # check if uart is running, root is runing, has 10 node
     # FLDTS
-    global network_node_amound, boardcast_confirmed_node
+    global network_node_amound, broadcast_confirmed_node
     attempts = 0
     max_attempts = 3
-    boardcast_timeout = 10
+    broadcast_timeout = 10
     conenct_node_timeout = 20
     node_amount = 10
     
@@ -124,17 +136,17 @@ def Test_0_connect_10_node(socket_api):
         attempts += 1
         print(f"\n===== Starting test-0 with attempt-{attemps}/{max_attempts} ===== ")
         
-        # boardcasr to initilize test on edge device
-        success = boardcast_and_wait_for_confirm(socket_api, "TEST0", node_amount, boardcast_timeout)
+        # broadcast to initilize test on edge device
+        success = broadcast_and_wait_for_confirm(socket_api, "TEST0", node_amount, broadcast_timeout)
         if !success:
             continue
-        print(f"Initilied Test on edge by boardcast")
+        print(f"Initilied Test on edge by broadcast")
         
-        # boardcasr to start test on edge device
+        # broadcast to start test on edge device
         success, _ = send_command(socket_api, "BCAST", 0, "START") 
         if !success:
             continue
-        print(f"Started Test on edge by boardcast")
+        print(f"Started Test on edge by broadcast")
         
         # reset root
         success, _ = send_command(socket_api, "RST-R", 0, "") 

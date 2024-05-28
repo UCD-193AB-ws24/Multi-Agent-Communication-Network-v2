@@ -7,9 +7,9 @@ import errno
 from datetime import datetime
 
 # define constents
-SOCKET_OPCODE_LEN = 5     # can be veried base on need
+# SOCKET_OPCODE_LEN = 5     # can be veried base on need # TB Fix
 SOCKET_NODE_ADDR_LEN = 2  # need to be 2
-BLE_MESH_BOARDCAST_ADDR = 255
+BLE_MESH_BROADCAST_ADDR = 255
 socket_op_amount = 2
 PORT = 6001
 SERVER_PORT = 5001
@@ -17,10 +17,11 @@ host = 'localhost'
 # example
 # node_addr = struct.unpack('!H', node_addr)[0] # unpack 2 byte and converts them from network byte order to host byte order
 # binary_data = struct.pack('!H', node_addr) # pack it back
-SOCKET_OPCODE = [
-    "[REQ]",
-    "EMPTY"
-]
+# SOCKET_OPCODE = [ # TB Fix
+#     "[REQ]",
+#     "EMPTY"
+# ] 
+
 class Socket_Manager():
     def __init__(self, server_addr, client_socket_callback):
         # set up the parameters
@@ -120,21 +121,25 @@ class Socket_Manager():
         return new_socket
     
 # why this need a self in the parameter, it's not in a class
-def craft_message_example( socket_opcode, node_addr, msg_payload) -> bytes:
+def craft_message_example(command:str, node_addr: int, msg_payload: bytes) -> bytes:
     # return the bytes of crafted message
-    node_addr = struct.pack('!H', node_addr)
-    message = socket_opcode.encode() + node_addr + msg_payload.encode()
-    print(message)
+    node_addr_bytes = encodeNodeAddr(node_addr)
+    message = command.encode() + node_addr_bytes + msg_payload
+    
+    # print(message)
     return message
    
 # other utility function provide by our API
 
-def getOpCodeNum(opcode):
-    for i in range(socket_op_amount):
-        if opcode == SOCKET_OPCODE[i]:
-            return i
-    return -1
+# def getOpCodeNum(opcode):
+#     for i in range(socket_op_amount):
+#         if opcode == SOCKET_OPCODE[i]:
+#             return i
+#     return -1
 
-def parseNodeAddr(addr_bytes: bytes):
+def encodeNodeAddr(addr: int) -> bytes:
+    return struct.pack('!H', node_addr) # encoded from host to network endianess (byte order)
+
+def parseNodeAddr(addr_bytes: bytes) -> int:
     # parse 2 byte into number
-    return struct.unpack('!H', addr_bytes)[0]
+    return struct.unpack('!H', addr_bytes)[0] # decode 2 byte from network to host endianess (byte order)

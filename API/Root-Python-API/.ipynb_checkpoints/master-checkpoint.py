@@ -1,5 +1,5 @@
 from socket_api import Socket_Manager
-from socket_api import getOpCodeNum, parseNodeAddr, craft_message_example
+from socket_api import parseNodeAddr, craft_message_example
 import time
 # self_port = 6001
 server_port = 5001
@@ -39,10 +39,11 @@ def edge_robot_request_handler_example(node_addr):
 
 
 def socket_message_callback_example(message_data: bytes):
-    print(f"Received message: {message_data.decode()}")
+    print("callback called")
+    print(f"Received message: {message_data}")
 
 def data_request_example(socket_manager, node_addr, data_type):
-    message = craft_message_example( "[GET]", node_addr, data_type)
+    message = craft_message_example( "[GET]", node_addr, data_type.encode())
     response = socket_manager.socket_sent(message)
     if response[0:1] == b'F':
         print("Failed to get data")
