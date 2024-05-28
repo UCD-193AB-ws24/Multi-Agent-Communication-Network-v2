@@ -82,7 +82,7 @@ class Uart_Manager:
             # byte >= escape_byte, encode escaped byte
             byte_encoded = escape_byte ^ byte
             result += escape_byte.to_bytes(1, 'big') # get the bytestring of this byte
-            result += byte_decoded.to_bytes(1, 'big') # get the bytestring of this byte
+            result += byte_encoded.to_bytes(1, 'big') # get the bytestring of this byte
         # while loop done
         
         return result
