@@ -27,7 +27,7 @@ class Network_Manager():
             # print("Net Manager still running...")
             time.sleep(1)
             
-    def attack_callback(self, socket_sent, uart_sent):
+    def attach_callback(self, socket_sent, uart_sent):
         self.socket_sent = socket_sent
         self.uart_sent = uart_sent
 

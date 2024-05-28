@@ -99,7 +99,7 @@ class Uart_Manager:
             self.serial_connection.write(data_encoded)
             self.serial_connection.write(uart_end)   # spcial byte marking end
     
-    def attack_callback(self, callback_func):
+    def attach_callback(self, callback_func):
         self.callback_func = callback_func
         print(f"[Uart] Successfully attached callback function, {type(self.callback_func)}")
     

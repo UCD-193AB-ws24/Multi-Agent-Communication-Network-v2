@@ -27,9 +27,9 @@ def main():
     uart_manager = Uart_Manager(port, baud_rate)
     socket_manager = Socket_Manager(server_socket_port, PACKET_SIZE)
     net_manager = Network_Manager()
-    socket_manager.attack_callback(net_manager.callback_socket)
-    uart_manager.attack_callback(net_manager.callback_uart)
-    net_manager.attack_callback(socket_manager.send_data, uart_manager.sent_data)
+    socket_manager.attach_callback(net_manager.callback_socket)
+    uart_manager.attach_callback(net_manager.callback_uart)
+    net_manager.attach_callback(socket_manager.send_data, uart_manager.sent_data)
     
     # Initialize uart_thread
     uart_manager.run()

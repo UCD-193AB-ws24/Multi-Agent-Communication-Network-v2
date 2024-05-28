@@ -95,7 +95,7 @@ class Socket_Manager():
         client_socket.close()
     
     
-    def attack_callback(self, callback_func):
+    def attach_callback(self, callback_func):
         self.callback_func = callback_func
         print(f"[Socket] Successfully attached callback function, {type(self.callback_func)}")
         
