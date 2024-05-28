@@ -9,7 +9,7 @@ class Socket_Manager():
         self.server_listen_port = server_listen_port
         self.server_socket = None             # Listen for all socket connection
         self.server_listen_thread = None
-        self.send_socket = None             # The Main communication Socket for python sending to C-API
+        self.send_socket = None               # The Main communication Socket for python sending to C-API
         self.send_address = None
         self.callback_func = None
         self.disconnect = True
@@ -62,18 +62,26 @@ class Socket_Manager():
         # listen to socket sonnection for C-API data/message request
         self.server_socket.listen(5)
         print(f"Listening on 'localhost':{self.server_listen_port} for C-API socket connection")
-        while True:
-            #------TB Review : reconnection----------------
-            if(self.disconnect == True):
-                print("---------------------------reconnecting------------------------------")
-                self.connect_send_socket()
-            #----------------------------------------------
-            client_socket, address = self.server_socket.accept()
-            # print(f" - Request connection from C-API in {address} has been established.") # [Testing Log]
-            
-            request_handler_thread = threading.Thread(target=self.socket_handler, args=(client_socket,))
-            request_handler_thread.start()
-
+        try:
+            while True:
+                #------TB Review : reconnection----------------
+                if(self.disconnect == True):
+                    print("---------------------------reconnecting------------------------------")
+                    self.connect_send_socket()
+                #----------------------------------------------
+                client_socket, address = self.server_socket.accept()
+                # print(f" - Request connection from C-API in {address} has been established.") # [Testing Log]
+                
+                request_handler_thread = threading.Thread(target=self.socket_handler, args=(client_socket,))
+                request_handler_thread.start()
+        except Exception as e:
+            print('Exception in server-socket listening thread:', e)
+        finally:
+            if self.server_socket != None:
+                self.server_socket.close()
+            if self.send_socket != None
+                self.send_socket.close()
+                
 
     def socket_handler(self, client_socket):
         # print("Starting new C-API socket request thread")  # [Testing Log]
