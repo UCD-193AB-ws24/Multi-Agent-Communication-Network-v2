@@ -12,7 +12,7 @@ class Socket_Manager():
         self.send_socket = None             # The Main communication Socket for python sending to C-API
         self.send_address = None
         self.callback_func = None
-        self.disconnect = True
+        self.is_connected = False
         self.initialize_socket()
     
     def initialize_socket(self):
@@ -35,8 +35,8 @@ class Socket_Manager():
         # ====== verify is a send_socket (C_API's listen socket) =======
         # TB Finish
         # ------------ TB Review ------------------------
-        print("disconnection: " + str(self.disconnect))
-        while (self.disconnect == True):
+        print("connection: " + str(self.is_connected))
+        while (self.is_connected == False):
             send_socket, send_address = self.server_socket.accept()
             print("here")
             data = send_socket.recv(self.PACKET_SIZE)
@@ -47,7 +47,7 @@ class Socket_Manager():
             else:
                 print("connected to listen")
                 send_socket.send(b'[ack]\x00')
-                self.disconnect = False
+                self.is_connected = True
         # ====== end of confirmation
         self.send_socket = send_socket
         self.send_address = send_address
@@ -64,7 +64,7 @@ class Socket_Manager():
         print(f"Listening on 'localhost':{self.server_listen_port} for C-API socket connection")
         while True:
             #------TB Review : reconnection----------------
-            if(self.disconnect == True):
+            if(self.is_connected == False):
                 print("---------------------------reconnecting------------------------------")
                 self.connect_send_socket()
             #----------------------------------------------
@@ -82,7 +82,7 @@ class Socket_Manager():
         data = client_socket.recv(self.PACKET_SIZE)
         #if the socket is trying to handshake meaning client was disconnected
         if(data == b'[syn]\x00'):
-            self.disconnect = True
+            self.is_connected = False
             client_socket.send(b'[err]-listen_socket_disconnected')
             client_socket.close()
             return
@@ -113,7 +113,7 @@ class Socket_Manager():
                 if(err_no == 32 or err_no == 104 or err_no == 111):
                     print("Client socket disconnected")
                     self.send_socket.close()
-                    self.disconnect = True
+                    self.is_connected = False
                 if err_no == 110:
                     print("Connection timeout")
         else:

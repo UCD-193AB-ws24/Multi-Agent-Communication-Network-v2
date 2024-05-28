@@ -90,22 +90,21 @@ class Socket_Manager():
         # what to do if it doesn't expect response, for example the resposne to edge nodes's request
         try:
             send_socket = self.connect_socket()
-            timeout = 5
+            send_socket.settimeout(5)
             if(send_socket == None):
                 return b'f'
             send_socket.send(data)
             print("data sent through send socket")
-            ready,_,_ = select.select([send_socket], [], [], timeout)
-            if not ready:
-                print("Timeout occurred")
-                send_socket.close()
-                return b'f'
-            else:
-                # If ready, read the response
-                response = send_socket.recv(1024)
-                print(f"Received response: {response}") 
-                send_socket.close()       
+            # TB Review: timeout
+            # If no timeout, read the response
+            response = send_socket.recv(1024)
+            print(f"Received response: {response}") 
+            send_socket.close()       
             return response
+        except socket.timeout:
+            print("Timeout occurred")
+            send_socket.close()
+            return b'f'
         except socket.error as e:
             send_socket.close()
             print(f"Socket error: {e}")
@@ -120,7 +119,6 @@ class Socket_Manager():
             return None
         return new_socket
     
-# why this need a self in the parameter, it's not in a class
 def craft_message_example(command:str, node_addr: int, msg_payload: bytes) -> bytes:
     # return the bytes of crafted message
     node_addr_bytes = encodeNodeAddr(node_addr)
