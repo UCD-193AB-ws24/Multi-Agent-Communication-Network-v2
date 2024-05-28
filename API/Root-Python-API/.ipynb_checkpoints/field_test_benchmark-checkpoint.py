@@ -136,14 +136,14 @@ def Test_0_connect_10_node(socket_api):
         attempts += 1
         print(f"\n===== Starting test-0 with attempt-{attemps}/{max_attempts} ===== ")
         
-        # broadcast to initilize test on edge device
+        # broadcast 'TST|I|name' (test init) to initilize test on edge device
         success = broadcast_and_wait_for_confirm(socket_api, "TEST0", node_amount, broadcast_timeout)
         if !success:
             continue
         print(f"Initilied Test on edge by broadcast")
         
-        # broadcast to start test on edge device
-        success, _ = send_command(socket_api, "BCAST", 0, "START") 
+        # broadcast 'TST|S' (test start) to edge device
+        success, _ = send_command(socket_api, "BCAST", 0, "TSTS") 
         if !success:
             continue
         print(f"Started Test on edge by broadcast")
@@ -166,7 +166,7 @@ def Test_0_connect_10_node(socket_api):
                 print(f"Timeout Trigered, failed to connect {node_amount} nodes in {conenct_node_timeout}")
                 break
                 
-            success, response = send_command(socket_api, "CNTAC", 0, "")
+            success, response = send_command(socket_api, "ACT-C", 0, "")
             new_active_count = response[0]
             if active_count != new_active_count:
                 print(f" - {active_count} node connected with {round(time_elapsed, 2)} second elapsed")

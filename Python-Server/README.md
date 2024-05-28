@@ -1,13 +1,14 @@
 ``` python
 ######################################################################################
 # === Network Command  ===
-# 'NINFO' get network info
 # 'SEND-' send message
 # 'BCAST' broadcast message
 # 'RST-R' reset root module
-# 'ACT-C' get active node count
 #
+# 'NINFO' get network info
+# 'NSTAT' get network node status
 # '[GET]' get node data
+# 'ACT-C' get active node count
 # 
 #
 # === API opcode / message type === 

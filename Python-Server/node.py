@@ -22,7 +22,7 @@ class Node_Status(Enum):
     Disconnect = 3
     
 class Node:
-    def __init__(self, name, address, uuid):
+    def __init__(self, name:str, address: int, uuid: bytes):
         self.name = name
         self.address = address
         self.uuid = uuid
