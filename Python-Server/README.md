@@ -11,10 +11,10 @@
 #       5 byte        |     2 byte    | 3 byte opcode | payload |
 #
 # Edge-client-API / Root-client-API Sends:
-#  src_node_addr |          message        |
+#   src_node_addr |          message        |
 #     2 byte     | 3 byte opcode | payload |
 #
-# message is the same, address will be dst for sender, src for reciver
+# message is the same (they can change opcode & opcode length whatever they want in APP level), address will be dst for sender, src for reciver
 #
 # =========================== socket protocal ================================
 # => incoming
