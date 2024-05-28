@@ -7,7 +7,7 @@ from socket_manager import Socket_Manager
 PACKET_SIZE = 1024
 server_socket_port = 5001
 # port = '/dev/ttyUSB0' #'COM7'
-port = '/dev/ttyUSB0'
+port = '/dev/ttyUSB1'
 baud_rate = 115200
 
 # Define the path for the new directory

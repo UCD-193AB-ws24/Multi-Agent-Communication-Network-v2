@@ -66,7 +66,7 @@ class Network_Manager():
             if len(node_list) == 0:
                 error = "Node Not Found"
                 response = b'F' + len(error).to_bytes(1, byteorder='little') + error.encode()
-                return data
+                return response
             
             response += b'\x01' # only one node
             node = node_list[0]

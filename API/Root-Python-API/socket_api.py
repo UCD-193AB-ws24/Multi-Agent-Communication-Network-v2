@@ -137,7 +137,7 @@ def craft_message_example(command:str, node_addr: int, msg_payload: bytes) -> by
 #             return i
 #     return -1
 
-def encodeNodeAddr(addr: int) -> bytes:
+def encodeNodeAddr(node_addr: int) -> bytes:
     return struct.pack('!H', node_addr) # encoded from host to network endianess (byte order)
 
 def parseNodeAddr(addr_bytes: bytes) -> int:
