@@ -44,9 +44,8 @@ class Socket_Manager():
                 if listen_socket == None:
                     time.sleep(2)
                     continue
-                print("Read socket connected to server")
                 listen_socket.send(b'[syn]\x00')
-                print("sent")
+                print("sent syn")
                 handshake_msg = listen_socket.recv(6)
                 print(f"received: {handshake_msg.decode()}")
                 if handshake_msg == b'[ack]\x00':
@@ -68,7 +67,6 @@ class Socket_Manager():
         listen_socket = self.setup_listen_connection()
         while(1):
             try:
-                print("trying again")
                 data = listen_socket.recv(1024)
                 if not data:
                     print("Connection closed")
@@ -81,6 +79,7 @@ class Socket_Manager():
                 listen_socket.close()
                 self.is_listening_connected = False
                 listen_socket = self.setup_listen_connection()
+        #I need to figure out how to properly close the socket when process kill itself
         listen_socket.close()           
 
     
@@ -91,6 +90,8 @@ class Socket_Manager():
         try:
             send_socket = self.connect_socket()
             timeout = 5
+            if(send_socket == None):
+                return b'f'
             send_socket.send(data)
             print("data sent through send socket")
             ready,_,_ = select.select([send_socket], [], [], timeout)

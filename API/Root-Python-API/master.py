@@ -39,7 +39,8 @@ def edge_robot_request_handler_example(node_addr):
 
 
 def socket_message_callback_example(message_data: bytes):
-    print(f"Received message: {message_data.decode()}")
+    print("callback called")
+    print(f"Received message: {message_data}")
 
 def data_request_example(socket_manager, node_addr, data_type):
     message = craft_message_example( "[GET]", node_addr, data_type)
