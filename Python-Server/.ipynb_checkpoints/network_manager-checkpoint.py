@@ -80,15 +80,15 @@ class Network_Manager():
         
     def callback_socket(self, data):
         print(f"\n[Socket-CB] {data}") # [Testing Log]
-        op_code = data[0:5]
+        command = data[0:5]
         payload = data[5:]
         try:
-            op_code = op_code.decode('utf-8')
+            command = command.decode('utf-8')
         except:
-            print("[Socket] can't parse opcode", op_code)
+            print("[Socket] can't parse command", command)
             return b'F'
             
-        if op_code == "[GET]":
+        if command == "[GET]":
             # [GET]|data_type|node_addr/index
             # node_addr = socket.ntohs(payload[0:2]) # int.from_bytes(payload[3], byteorder='little')
             node_addr = struct.unpack('!H', payload[0:2])[0] # unpack 2 byte and converts them from network byte order to host byte order
@@ -96,30 +96,18 @@ class Network_Manager():
             return self.getNodeData(data_type, node_addr)
             
         #----------TB_review : response-------------- nne to fix
-        if op_code == "[REQ]":
-            # restructure response to Edge Request base on uart format, send back to edge node
-            node_addr = data[5:7]
-            uart_opcode = "<R>".encode()
-            payload = data[7:]
+#         if command == "[REQ]":
+#             # restructure response to Edge Request base on uart format, send back to edge node
+#             node_addr = data[5:7]
+#             uart_opcode = "<R>".encode()
+#             payload = data[7:]
             
-            uart_msg = node_addr + uart_opcode + payload
-            self.uart_sent(uart_msg)
-            return b'S'
+#             uart_msg = node_addr + uart_opcode + payload
+#             self.uart_sent(uart_msg)
+#             return b'S'
         # -------------------------------------------
+
         
-        # # faking uart request -----------------------
-        # op_code = data[0:3].decode('utf-8')
-        # if op_code == "<Q>":
-        #     addr = data[3:5]
-        #     payload = data[5:]
-        #     lenth = 14
-        #     new_data = addr + "<Q>".encode() +lenth.to_bytes(1, "little")  + payload
-        #     print(new_data)
-        #     self.callback_uart(new_data)
-        #     return b'S'
-        # #
-
-
     # ============================= UART Logics =================================
     # updateNodeData needs the pre-defined data_type & length table, (not now),  -------------------- TB Finish --------------------------
     def updateNodeData(self, node_addr, msg_payload):
