@@ -36,7 +36,6 @@ class Network_Manager():
         active_nodes = list(filter(lambda node: node.status == Node_Status.Active, self.node_list))
         return active_nodes
         
-    # getNodeData needs the pre-defined data_type & length table, (not now),  -------------------- TB Finish --------------------------
     def getNodeData(self, data_type, node_addr):
         # <= data outgoing (single or patch)
         # S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
@@ -93,8 +92,7 @@ class Network_Manager():
             return response
 
         # ============== need to be remake for correct data length ===================
-        
-    # updateNodeData needs the pre-defined data_type & length table, (not now),  -------------------- TB Finish --------------------------
+    
     def updateNodeData(self, node_addr: int, msg_payload: bytes):
         # print("updateNodeData from cmd:[D] on node:", node_addr) # [Testing Log]
         node_list = list(filter(lambda node: node.address == node_addr, self.node_list))
