@@ -15,11 +15,17 @@
 # === API opcode / message type (opcode) === (3 byte)
 # 'ECH' for echo message, expecting copy
 # 'CPY' for copy message on recived 'ECH'
+# 'REQ' edge request
 #
 # 'NET' Network Information message
 # 'NOD' Node Connecetd update message
 # 'RST' root module reseted
 # '[D]' node data
+#
+# 'TST' for field test test-flow
+# 'TST|I|test_name' expecting copy on edge confirmed test initialization
+# 'TST|S' start test
+# 'TST|F' finish test
 #
 ######################################################################################
 
