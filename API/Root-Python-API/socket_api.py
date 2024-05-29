@@ -1,9 +1,8 @@
 import threading
 import socket
 import time
-import select
 import struct
-import errno
+import signal
 from datetime import datetime
 
 # define constents
@@ -44,6 +43,7 @@ class Socket_Manager():
                 listen_socket = self.connect_socket()
                 if listen_socket == None:
                     time.sleep(2)
+                    print("server down")
                     continue
                 listen_socket.send(b'[syn]\x00')
                 print("sent syn")
@@ -90,9 +90,9 @@ class Socket_Manager():
         # what to do if it doesn't expect response, for example the resposne to edge nodes's request
         try:
             send_socket = self.connect_socket()
-            send_socket.settimeout(5)
             if(send_socket == None):
                 return b'f'
+            send_socket.settimeout(5)
             send_socket.send(data)
             print("data sent through send socket")
             # TB Review: timeout

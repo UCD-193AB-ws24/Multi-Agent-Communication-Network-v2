@@ -2,6 +2,8 @@ import socket
 import threading
 import time
 from datetime import datetime
+import signal
+
 
 class Socket_Manager():
     def __init__(self, server_listen_port, PACKET_SIZE):
@@ -13,13 +15,20 @@ class Socket_Manager():
         self.send_address = None
         self.callback_func = None
         self.is_connected = False
+        signal.signal(signal.SIGINT, self.handler)
         self.initialize_socket()
     
     def initialize_socket(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(('localhost', self.server_listen_port))
         self.server_socket.settimeout(None)  # accept_connectiondont timeout when waiting for response
-                    
+
+    def handler(self, signum, frame):
+        self.send_socket.close()
+        self.server_socket.close()
+        exit(0)
+        
+    
     def run(self):
         print("Starting socket thread")
         self.socket_thread = threading.Thread(target=self.server_listening_thread, args=(), daemon=True)
@@ -76,6 +85,8 @@ class Socket_Manager():
                 request_handler_thread.start()
         except Exception as e:
             print('Exception in server-socket listening thread:', e)
+        except KeyboardInterrupt:
+            print("KeyboardInterrupt")
         finally:
             if self.server_socket != None:
                 self.server_socket.close()
