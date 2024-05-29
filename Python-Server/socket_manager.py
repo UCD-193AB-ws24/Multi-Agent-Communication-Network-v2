@@ -79,8 +79,9 @@ class Socket_Manager():
         finally:
             if self.server_socket != None:
                 self.server_socket.close()
-            if self.send_socket != None
+            if self.send_socket != None:
                 self.send_socket.close()
+            pass
                 
 
     def socket_handler(self, client_socket):

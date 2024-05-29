@@ -2,7 +2,6 @@ from enum import Enum
 from collections import deque
 from datetime import datetime
 import os
-from network_namager import encodeNodeAddr, parseNodeAddr
 
 # Structure of Node
 # No need for big change at the moment, will get final review and clean up when other stuff is confirmed working
