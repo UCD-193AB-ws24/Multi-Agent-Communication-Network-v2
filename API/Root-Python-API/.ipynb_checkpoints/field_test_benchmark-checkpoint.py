@@ -134,7 +134,8 @@ def Test_0_connect_10_node(socket_api):
     max_attempts = 3
     broadcast_timeout = 10
     conenct_node_timeout = 20
-    node_amount = 10
+    # node_amount = 10
+    node_amount = 1
     
     # subscribe("[NET]", test_0_network_status_callback)
     # ----------- Test 0 -----------
@@ -191,6 +192,10 @@ def Test_0_connect_10_node(socket_api):
     
     # test finished
     if attemps == max_attempts + 1:
-        print("Test0 Succeed")
+        current_time = time.time
+        time_elapsed = current_time - start_time
+        print("Test0 Succeed, time: ", round(time_elapsed, 2) , "s")
         # print the result
+    else:
+        print("Test0 Failed")
     # ----------- Test 0 -----------

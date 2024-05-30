@@ -1,5 +1,6 @@
 from socket_api import Socket_Manager
 from socket_api import parseNodeAddr, craft_message_example
+from field_test_benchmark import Test_0_connect_10_node
 import time
 # self_port = 6001
 server_port = 5001
@@ -41,6 +42,27 @@ def edge_robot_request_handler_example(node_addr):
 def socket_message_callback_example(message_data: bytes):
     print("callback called")
     print(f"Received message: {message_data}")
+    
+    node_addr_bytes = message_data[0:2]
+    opcode_bytes = message_data[2:5]
+    payload_bytes = message_data[5:]
+    
+    node_addr = parseNodeAddr(node_addr_bytes)
+    opcode = "---"
+    try:
+        opcode = opcode_bytes.decode('utf-8')
+    except:
+        print("Can't parse opcode", op_code)
+        return
+        
+    # notify subscribers
+    notify(opcode, message_data)
+
+    # handler socket message
+    if opcode == "[REQ]":
+        # request from edge
+        pass
+
 
 def data_request_example(socket_manager, node_addr, data_type):
     message = craft_message_example( "[GET]", node_addr, data_type.encode())
@@ -54,7 +76,12 @@ def main():
     server_addr = (server_ip, server_port)
     socket_api = Socket_Manager(server_addr, socket_message_callback_example)
     socket_api.run_socket_listen_thread()
+
+    Test_0_connect_10_node(socket_api)
     
+    
+    print("Programe still running...")
+    time.sleep(10)
     while True:
         # print("Programe still running...")
         data_request_example(socket_api,5, "GPS")

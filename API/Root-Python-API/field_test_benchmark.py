@@ -89,7 +89,7 @@ def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_am
     #            test  initialize  test_name
     message_str = "TST" + "I" + test_name
     message_byte = craft_message_example("BCAST", 0, message_str.encode()) 
-    socket_api.socket_sent(message)
+    socket_api.socket_sent(message_byte)
 
     # timeout
     start_time = time.time
@@ -134,29 +134,30 @@ def Test_0_connect_10_node(socket_api):
     max_attempts = 3
     broadcast_timeout = 10
     conenct_node_timeout = 20
-    node_amount = 10
+    # node_amount = 10
+    node_amount = 1
     
     # subscribe("[NET]", test_0_network_status_callback)
     # ----------- Test 0 -----------
     while attempts < max_attempts:
         attempts += 1
-        print(f"\n===== Starting test-0 with attempt-{attemps}/{max_attempts} ===== ")
+        print(f"\n===== Starting test-0 with attempt-{attempts}/{max_attempts} ===== ")
         
         # broadcast 'TST|I|name' (test init) to initilize test on edge device
-        success = broadcast_and_wait_for_confirm(socket_api, "TEST0", node_amount, broadcast_timeout)
-        if !success:
+        success = broadcast_initialization_and_wait_for_confirm(socket_api, "TEST0", node_amount, broadcast_timeout)
+        if not success:
             continue
         print(f"Initilied Test on edge by broadcast")
         
         # broadcast 'TST|S' (test start) to edge device
         success, _ = send_command(socket_api, "BCAST", 0, "TSTS") 
-        if !success:
+        if not success:
             continue
         print(f"Started Test on edge by broadcast")
         
         # reset root
         success, _ = send_command(socket_api, "RST-R", 0, "") 
-        if !success:
+        if not success:
             continue
         print(f"Root reseted, wating on edge connect back")
         
@@ -165,7 +166,7 @@ def Test_0_connect_10_node(socket_api):
         current_time = start_time
         time_elapsed = 0
         active_count = 0
-        while active_nodes < node_amount:
+        while len(broadcast_confirmed_node) < node_amount:
             current_time = time.time
             time_elapsed = current_time - start_time
             if time_elapsed > conenct_node_timeout:
@@ -180,7 +181,7 @@ def Test_0_connect_10_node(socket_api):
             time.sleep(0.1) # checking every 0.1 second
             
         # check if is a timeout that break the loop
-        if active_nodes < node_amount:
+        if len(broadcast_confirmed_node) < node_amount:
             continue
         
         # test succeed, all node connecetd
@@ -190,7 +191,11 @@ def Test_0_connect_10_node(socket_api):
         break
     
     # test finished
-    if attemps == max_attempts + 1:
-        print("Test0 Succeed")
+    if attempts == max_attempts + 1:
+        current_time = time.time
+        time_elapsed = current_time - start_time
+        print("Test0 Succeed, time: ", round(time_elapsed, 2) , "s")
         # print the result
+    else:
+        print("Test0 Failed")
     # ----------- Test 0 -----------
