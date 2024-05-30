@@ -109,11 +109,11 @@ def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_am
     unsubscribe("CPY", field_test_broadcast_confirm_callback)
     return True
 
-def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> (bool, bytes):
+def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> tuple[bool, bytes]:
     # send command and confirm executed successfully
     message = craft_message_example(command, node_addr, payload) 
     response = socket_api.socket_sent(message)
-    if response[0:1] = b'F': # socket command faild
+    if response[0:1] == b'F': # socket command faild
         error = response[1:]
         try:
             error = error.decode()

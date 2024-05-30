@@ -16,11 +16,11 @@ def subscribe(opcode, callback):
     
 def unsubscribe(opcode, callback):
     if opcode not in socket_event_subscriber:
-        print(f"opcode: \'{opcde}\' has no subscriber")
+        print(f"opcode: \'{opcode}\' has no subscriber")
         return
     
     if callback not in socket_event_subscriber[opcode]:
-        print(f"opcode: \'{opcde}\' has no subscriber from this callback")
+        print(f"opcode: \'{opcode}\' has no subscriber from this callback")
         return
     
     socket_event_subscriber[opcode].remove(callback)
@@ -52,7 +52,7 @@ def socket_message_callback_example(message_data: bytes):
     try:
         opcode = opcode_bytes.decode('utf-8')
     except:
-        print("Can't parse opcode", op_code)
+        print("Can't parse opcode", opcode)
         return
         
     # notify subscribers
