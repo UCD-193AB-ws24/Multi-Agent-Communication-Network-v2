@@ -50,7 +50,6 @@ import time
 from socket_api import Socket_Manager  # class object
 from socket_api import craft_message_example, parseNodeAddr  # function
 from opcode_subscribe import subscribe, unsubscribe
-from master import network_info as net_info
 
 # globl variable so it can be accessed by all test and reused
 network_node_amound = 0
