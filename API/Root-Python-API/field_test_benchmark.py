@@ -91,11 +91,11 @@ def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_am
     socket_api.socket_sent(message_byte)
 
     # timeout
-    start_time = time.time
+    start_time = time.time()
     timeout = 10
 
     while len(broadcast_confirmed_node) < node_amount:
-        current_time = time.time
+        current_time = time.time()
         if current_time - start_time > timeout:
             print(f"Faild to confirm {test_name} broadcast with edge device")
             print(f" - {len(broadcast_confirmed_node)} copied broadcast message")
@@ -161,12 +161,12 @@ def Test_0_connect_10_node(socket_api):
         print(f"Root reseted, wating on edge connect back")
         
         # check active node count on network
-        start_time = time.time
+        start_time = time.time()
         current_time = start_time
         time_elapsed = 0
         active_count = 0
         while len(broadcast_confirmed_node) < node_amount:
-            current_time = time.time
+            current_time = time.time()
             time_elapsed = current_time - start_time
             if time_elapsed > conenct_node_timeout:
                 print(f"Timeout Trigered, failed to connect {node_amount} nodes in {conenct_node_timeout}")
@@ -191,7 +191,7 @@ def Test_0_connect_10_node(socket_api):
     
     # test finished
     if attempts == max_attempts + 1:
-        current_time = time.time
+        current_time = time.time()
         time_elapsed = current_time - start_time
         print("Test0 Succeed, time: ", round(time_elapsed, 2) , "s")
         # print the result
