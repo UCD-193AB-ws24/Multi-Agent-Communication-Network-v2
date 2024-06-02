@@ -92,6 +92,7 @@ class Socket_Manager():
                 self.server_socket.close()
             if self.send_socket != None:
                 self.send_socket.close()
+            pass
                 
 
     def socket_handler(self, client_socket):
@@ -133,8 +134,14 @@ class Socket_Manager():
                     print("Client socket disconnected")
                     self.send_socket.close()
                     self.is_connected = False
+                    return b'F' + "Client socket disconnected".encode()
                 if err_no == 110:
                     print("Connection timeout")
+                    return b'F' + "Connection timeout".encode()
         else:
             print("No socket connected")
+            return b'F' + "No socket connected".encode()
             # implment attemps of reconnection
+        
+        
+        return b'S'

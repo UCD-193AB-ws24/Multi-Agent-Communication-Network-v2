@@ -31,53 +31,68 @@ class Network_Manager():
         self.socket_sent = socket_sent
         self.uart_sent = uart_sent
 
-    # getNodeData needs the pre-defined data_type & length table, (not now),  -------------------- TB Finish --------------------------
+    def getActiveNode(self):
+        # TB Finish, update on node status base on timestamp
+        active_nodes = list(filter(lambda node: node.status == Node_Status.Active, self.node_list))
+        return active_nodes
+        
     def getNodeData(self, data_type, node_addr):
         # <= data outgoing (single or patch)
         # S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
         # ^ success
         # F|Error_flag/Message
         response = b'S' + data_type.encode()
-        
-        if data_type != "GPS":
-            print("only support GPS for testing, need define length of other data type in doc")
-            return b'F-only support for GPS'
 
         # ============== need to be remake for correct data length ===================
-        # TB Finish
-        # ----- predefined data length for each type -------
-        data_length_byte = 6 # 6 byte for GPS data
-        response += data_length_byte.to_bytes(1, byteorder='little') # one byte for size, we won't have some data larger than 255 bytes
-        # ----- predefined data length for each type -------
-        
+        # TB Tested - need full test and review
         
         # ------ untested get all node feature ---------------
-        if node_addr == 255: # 0xFF => all nodes in same patch
-            active_nodes = list(filter(lambda node: node.status == Node_Status.Active, self.node_list))
-            size_n = len(active_nodes)
-            response += size_n.to_bytes(1, byteorder='little') # one byte for size, we won't have more than 254 nodes
+        if node_addr == 0: # 0x0000 => get all nodes in same patch
+            active_nodes = self.getActiveNode()
+            data_len = 0
+            # load length
             for node in active_nodes:
-                response += node.address.to_bytes(1, byteorder='little')
-                response += node.getDataBytes(data_type)
+                hasData, data_len = node.getDataLength(data_type)
+                if hasData:
+                    response += data_len.to_bytes(1, byteorder='little')
+                    break
+
+            # load data
+            size_n = 0
+            total_data_bytes = b''
+            for node in active_nodes:
+                hasData, data = node.getDataBytes(data_type)
+                if hasData:
+                    size_n += 1
+                    total_data_bytes += encodeNodeAddr(node.address)
+                    total_data_bytes += data
+                    
+            response += size_n.to_bytes(1, byteorder='little') # one byte for size, we won't have more than 254 nodes
+            response += total_data_bytes
+            return response
         # ------ untested get all node feature ---------------
 
-        elif node_addr != 255: # 0x## => single node
+        elif node_addr != 0: # 0x## => single node
             node_list = list(filter(lambda node: node.address == node_addr, self.node_list))
             if len(node_list) == 0:
                 error = "Node Not Found"
                 response = b'F' + len(error).to_bytes(1, byteorder='little') + error.encode()
-                return data
+                return response
             
-            response += b'\x01' # only one node
+            response += b'\x01' # size_n = 1 only one node
             node = node_list[0]
-            response += node.address.to_bytes(1, byteorder='little')
-            response += node.getDataBytes(data_type)
+            hasData, data = node.getDataBytes(data_type)
+            if not hasData:
+                error = "Data Type Not Found"
+                response = b'F' + len(error).to_bytes(1, byteorder='little') + error.encode()
+                return response
+                
+            response += encodeNodeAddr(node.address)
+            response += data
+            return response
 
         # ============== need to be remake for correct data length ===================
-        
-        return response
-        
-    # updateNodeData needs the pre-defined data_type & length table, (not now),  -------------------- TB Finish --------------------------
+    
     def updateNodeData(self, node_addr: int, msg_payload: bytes):
         # print("updateNodeData from cmd:[D] on node:", node_addr) # [Testing Log]
         node_list = list(filter(lambda node: node.address == node_addr, self.node_list))

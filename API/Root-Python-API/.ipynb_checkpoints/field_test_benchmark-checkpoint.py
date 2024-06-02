@@ -15,11 +15,17 @@
 # === API opcode / message type (opcode) === (3 byte)
 # 'ECH' for echo message, expecting copy
 # 'CPY' for copy message on recived 'ECH'
+# 'REQ' edge request
 #
 # 'NET' Network Information message
 # 'NOD' Node Connecetd update message
 # 'RST' root module reseted
 # '[D]' node data
+#
+# 'TST' for field test test-flow
+# 'TST|I|test_name' expecting copy on edge confirmed test initialization
+# 'TST|S' start test
+# 'TST|F' finish test
 #
 ######################################################################################
 
@@ -43,8 +49,7 @@
 import time
 from socket_api import Socket_Manager  # class object
 from socket_api import craft_message_example, parseNodeAddr  # function
-from master import subscribe, unsubscribe
-from master import network_info as net_info
+from opcode_subscribe import subscribe, unsubscribe
 
 # globl variable so it can be accessed by all test and reused
 network_node_amound = 0
@@ -83,14 +88,14 @@ def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_am
     #            test  initialize  test_name
     message_str = "TST" + "I" + test_name
     message_byte = craft_message_example("BCAST", 0, message_str.encode()) 
-    socket_api.socket_sent(message)
+    socket_api.socket_sent(message_byte)
 
     # timeout
-    start_time = time.time
+    start_time = time.time()
     timeout = 10
 
     while len(broadcast_confirmed_node) < node_amount:
-        current_time = time.time
+        current_time = time.time()
         if current_time - start_time > timeout:
             print(f"Faild to confirm {test_name} broadcast with edge device")
             print(f" - {len(broadcast_confirmed_node)} copied broadcast message")
@@ -103,11 +108,11 @@ def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_am
     unsubscribe("CPY", field_test_broadcast_confirm_callback)
     return True
 
-def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> (bool, bytes):
+def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> tuple[bool, bytes]:
     # send command and confirm executed successfully
     message = craft_message_example(command, node_addr, payload) 
     response = socket_api.socket_sent(message)
-    if response[0:1] = b'F': # socket command faild
+    if response[0:1] == b'F': # socket command faild
         error = response[1:]
         try:
             error = error.decode()
@@ -120,7 +125,7 @@ def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> (b
     response = response[1:]
     return (True, response)
 
-def Test_0_connect_10_node(socket_api):
+def connect_N_node(socket_api, node_amount):
     # check if uart is running, root is runing, has 10 node
     # FLDTS
     global network_node_amound, broadcast_confirmed_node
@@ -128,39 +133,39 @@ def Test_0_connect_10_node(socket_api):
     max_attempts = 3
     broadcast_timeout = 10
     conenct_node_timeout = 20
-    node_amount = 10
+    # node_amount = 10
     
     # subscribe("[NET]", test_0_network_status_callback)
     # ----------- Test 0 -----------
     while attempts < max_attempts:
         attempts += 1
-        print(f"\n===== Starting test-0 with attempt-{attemps}/{max_attempts} ===== ")
+        print(f"\n===== Starting test-0 with attempt-{attempts}/{max_attempts} ===== ")
         
         # broadcast 'TST|I|name' (test init) to initilize test on edge device
-        success = broadcast_and_wait_for_confirm(socket_api, "TEST0", node_amount, broadcast_timeout)
-        if !success:
+        success = broadcast_initialization_and_wait_for_confirm(socket_api, "TEST0", node_amount, broadcast_timeout)
+        if not success:
             continue
         print(f"Initilied Test on edge by broadcast")
         
         # broadcast 'TST|S' (test start) to edge device
         success, _ = send_command(socket_api, "BCAST", 0, "TSTS") 
-        if !success:
+        if not success:
             continue
         print(f"Started Test on edge by broadcast")
         
         # reset root
         success, _ = send_command(socket_api, "RST-R", 0, "") 
-        if !success:
+        if not success:
             continue
         print(f"Root reseted, wating on edge connect back")
         
         # check active node count on network
-        start_time = time.time
+        start_time = time.time()
         current_time = start_time
         time_elapsed = 0
         active_count = 0
-        while active_nodes < node_amount:
-            current_time = time.time
+        while len(broadcast_confirmed_node) < node_amount:
+            current_time = time.time()
             time_elapsed = current_time - start_time
             if time_elapsed > conenct_node_timeout:
                 print(f"Timeout Trigered, failed to connect {node_amount} nodes in {conenct_node_timeout}")
@@ -174,7 +179,7 @@ def Test_0_connect_10_node(socket_api):
             time.sleep(0.1) # checking every 0.1 second
             
         # check if is a timeout that break the loop
-        if active_nodes < node_amount:
+        if len(broadcast_confirmed_node) < node_amount:
             continue
         
         # test succeed, all node connecetd
@@ -184,7 +189,24 @@ def Test_0_connect_10_node(socket_api):
         break
     
     # test finished
-    if attemps == max_attempts + 1:
-        print("Test0 Succeed")
+    if attempts == max_attempts + 1:
+        current_time = time.time()
+        time_elapsed = current_time - start_time
+        print("Connect N node Succeed, time: ", round(time_elapsed, 2) , "s")
         # print the result
+    else:
+        print("Connect N node Failed")
     # ----------- Test 0 -----------
+    
+    
+    
+def ping_N_node(node_amount, data_size, send_rate, time):
+    # measure RTT and Pkt loss for sending
+    # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
+    pass
+
+    
+def request_test(node_amount, data_size, send_rate, time):
+    # measure RTT and Pkt loss for sending
+    # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
+    pass

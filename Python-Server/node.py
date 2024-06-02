@@ -29,40 +29,23 @@ class Node:
         
         self.status = Node_Status.Active
         self.data_historys = {}
-        
-        self.data_historys["GPS"] = deque()            # (gps_data, time)
-        self.data_historys["Load_Cell"] = deque()      # (load_data, time)
-        self.data_historys["Robot_Request"] = deque()  # (request_count, time)
         self.last_contact_time = datetime.now()
         
-#     def getData(self, data_type):
-#         # ====== might not need this function anymore =========
-#         # ====== since only cares about data's bytes=========
-#         if data_type not in self.data_historys:
-#             print(f"data type {data_type} not exist")
-#             return None
-        
-#         return self.data_historys[data_type][-1][0]
-        
-    def getDataBytes(self, data_type):
-        # ====== for GPS only for now =========
-        # TB Finish - complte other data type
-        # GPS - 6 byte - lontitude|latitude
-        # ====== for GPS only for now =========
-        
-        # if data_type == "GPS":
-            # gps_data = self.data_historys[data_type][-1][0]
-            # data_byte = b''
-            # data_byte += gps_data[0].to_bytes(3, byteorder='little')
-            # data_byte += gps_data[1].to_bytes(3, byteorder='little')
-            
-            # return data_byte
-        
+    def getDataLength(self, data_type):
         if data_type not in self.data_historys:
             print(f"data type {data_type} not exist")
-            return b'F'
+            return (False, b'F' + "data type not exist".encode())
 
-        return self.data_historys[data_type][-1][0]
+        # return data length
+        return (True, len(self.data_historys[data_type][-1][0]))
+        
+    def getDataBytes(self, data_type):
+        if data_type not in self.data_historys:
+            print(f"data type {data_type} not exist")
+            return (False, b'F' + "data type not exist".encode())
+
+        # return latest
+        return (True, self.data_historys[data_type][-1][0])
     
     def storeData(self, data_type, data):
         if data_type not in self.data_historys:

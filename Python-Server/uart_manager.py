@@ -98,6 +98,9 @@ class Uart_Manager:
             self.serial_connection.write(uart_start) # spcial byte marking start
             self.serial_connection.write(data_encoded)
             self.serial_connection.write(uart_end)   # spcial byte marking end
+            return b'S'
+        else:
+            return b'F' + "No Serial Connection".encode()
     
     def attach_callback(self, callback_func):
         self.callback_func = callback_func
