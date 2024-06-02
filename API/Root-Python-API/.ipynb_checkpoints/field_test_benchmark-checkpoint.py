@@ -125,7 +125,7 @@ def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> tu
     response = response[1:]
     return (True, response)
 
-def Test_0_connect_10_node(socket_api):
+def connect_N_node(socket_api, node_amount):
     # check if uart is running, root is runing, has 10 node
     # FLDTS
     global network_node_amound, broadcast_confirmed_node
@@ -134,7 +134,6 @@ def Test_0_connect_10_node(socket_api):
     broadcast_timeout = 10
     conenct_node_timeout = 20
     # node_amount = 10
-    node_amount = 1
     
     # subscribe("[NET]", test_0_network_status_callback)
     # ----------- Test 0 -----------
@@ -193,8 +192,21 @@ def Test_0_connect_10_node(socket_api):
     if attempts == max_attempts + 1:
         current_time = time.time()
         time_elapsed = current_time - start_time
-        print("Test0 Succeed, time: ", round(time_elapsed, 2) , "s")
+        print("Connect N node Succeed, time: ", round(time_elapsed, 2) , "s")
         # print the result
     else:
-        print("Test0 Failed")
+        print("Connect N node Failed")
     # ----------- Test 0 -----------
+    
+    
+    
+def ping_N_node(node_amount, data_size, send_rate, time):
+    # measure RTT and Pkt loss for sending
+    # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
+    pass
+
+    
+def request_test(node_amount, data_size, send_rate, time):
+    # measure RTT and Pkt loss for sending
+    # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
+    pass

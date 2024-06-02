@@ -97,7 +97,7 @@ void uart_write_encoded_bytes(byte* ble_cmd, size_t ble_cmd_len, byte* data_buff
 size_t uart_readAndDecode_message(HardwareSerial& serial_port, byte* data_buffer, size_t buffer_len, size_t* data_len_ptr) {
   size_t byte_read = 0;
   size_t data_len = 0;
-
+  
   if (serial_port.available() <= 0) {
     *data_len_ptr = 0;
     return 0;
@@ -402,21 +402,21 @@ void loop() {
 
   // Debug log
   if (byte_read > 0) {
-    // byte uart_start = UART_START;
-    // byte uart_end = UART_END;
-    // Serial.write(&uart_start, 1);
-    // Serial.print("[UART] read ");
-    // Serial.print(byte_read);
-    // Serial.print(" byte \'");
-    // Serial.write(data, data_len);
-    // Serial.println("\'");
-    // Serial.write(&uart_end, 1);
+    byte uart_start = UART_START;
+    byte uart_end = UART_END;
+    Serial.write(&uart_start, 1);
+    Serial.print("[UART] read ");
+    Serial.print(byte_read);
+    Serial.print(" byte \'");
+    Serial.write(data, data_len);
+    Serial.println("\'");
+    Serial.write(&uart_end, 1);
 
     network_message_handler(data, data_len);
   }
 
   // send update
-  if (time - lastSendTime >= 8000) {
+  if (time - lastSendTime >= 18000) {
     lastSendTime = time;
     sendTestMultipleData(&fake_gps, &fake_lds, &fake_idx);
     fake_gps += 20;
