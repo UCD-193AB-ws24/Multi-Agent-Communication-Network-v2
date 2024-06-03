@@ -136,18 +136,17 @@ def test_initialization(socket_api,test_name,  node_amount, broadcast_timeout, n
     success = broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_amount, broadcast_timeout)
     if not success:
         return False
-    print(f"Initialized Test on edge")
+    print(f" - Initialized Test on edge")
 
     # send 'TST|S' (test start) to edge device
     command = "BCAST"
     if node_amount == 1:
         command = "SEND-"
 
-    print("----sending start---- node_addr:", node_addr)
     success, _ = send_command(socket_api, command, node_addr, "TSTS".encode()) 
     if not success:
         return False
-    print(f"Started Test on edge")
+    print(f" - Started Test on edge")
 
     return True # success
 
@@ -156,7 +155,7 @@ def test_termination(socket_api):
     success, _ = send_command(socket_api, "BCAST", 0, "TSTF".encode()) 
     if not success:
         return False
-    print(f"Finished Test on edge by broadcast")
+    print(f" - Finished Test on edge by broadcast")
     return True
 
 def get_N_Nodes(socket_api, node_amount):
@@ -179,7 +178,6 @@ def get_N_Nodes(socket_api, node_amount):
     
     selected = []
 
-    print(f"network_node_amount: {network_node_amount}")
     for i in range(network_node_amount):
         if node_status_list[i] == 1:
             selected.append(node_addr_list[i])
@@ -214,6 +212,7 @@ def connect_N_node(socket_api, node_amount):
             node_addr_list, error_msg = get_N_Nodes(socket_api, node_amount)
             if node_addr_list == None:
                 print(error_msg)
+                time.sleep(5) # allow some time for node to connect
                 continue
             node_addr = node_addr_list[0]
         
@@ -221,21 +220,21 @@ def connect_N_node(socket_api, node_amount):
         success = test_initialization(socket_api, test_name, node_amount, broadcast_timeout, node_addr)
         if not success:
             continue
-        print(f"Initilied Test on edge by broadcast")
         
         # Starting test
         # reset root
         success, _ = send_command(socket_api, "RST-R", 0, b'') 
         if not success:
             continue
-        print(f"Root reseted, wating on edge connect back")
+        print(f" - Root reseted, wating on edge connect back")
         
         # check active node count on network
         start_time = time.time()
         current_time = start_time
         time_elapsed = 0
         active_count = 0
-        while len(broadcast_confirmed_node) < node_amount:
+        time.sleep(0.1) # for testing------------------------------
+        while active_count < node_amount:
             current_time = time.time()
             time_elapsed = current_time - start_time
             if time_elapsed > conenct_node_timeout:
@@ -245,12 +244,13 @@ def connect_N_node(socket_api, node_amount):
             success, response = send_command(socket_api, "ACT-C", 0, b'')
             new_active_count = response[0]
             if active_count != new_active_count:
+                active_count = new_active_count
                 print(f" - {active_count} node connected with {round(time_elapsed, 2)} second elapsed")
             
             time.sleep(0.1) # checking every 0.1 second
             
         # check if is a timeout that break the loop
-        if len(broadcast_confirmed_node) < node_amount:
+        if active_count < node_amount:
             continue
         
         # finished the test on current attempt

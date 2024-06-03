@@ -94,11 +94,9 @@ class Socket_Manager():
                 return b'f'
             send_socket.settimeout(5)
             send_socket.send(data)
-            print("data sent through send socket")
             # TB Review: timeout
             # If no timeout, read the response
             response = send_socket.recv(1024)
-            print(f"Received response: {response}") 
             send_socket.close()       
             return response
         except socket.timeout:

@@ -101,6 +101,8 @@ class Network_Manager():
             node = self.add_node("Node",node_addr, b'')
         else:
             node = node_list[0]
+
+        node.status = Node_Status.Active
         
         #   size_n|data_type|data_length_byte|data|...|data_type|data_length_byte|data
         #    1   |   3     |     1          | n| ... (size of each segment in bytes)
@@ -164,11 +166,12 @@ class Network_Manager():
             # Serialize and Send JSON data
             network_status_json = json.dumps(network_status)
             network_status_bytes = network_status_json.encode('utf-8')
+            print(f"'NSTAT' command executed")
             return b'S' + network_status_bytes
         
         if command == "NINFO": # retrive network node info
             # ask net_info from esp-root, give it to socket API
-            pass
+            return b'F' + "Not implmented".encode('utf-8')
         
          ############## Command get handled in ESP-Root-Module ##############
         # all other commands
@@ -176,6 +179,16 @@ class Network_Manager():
         # - 'BCAST' broadcast message
         # - 'RST-R' reset root module
         # send to ESP-Root-Module by uart
+        if command == "RST-R":
+            # self.node_list = [] # reset server node list as well
+            # set nodes to not avaiable for now , TB Finished
+            for node in self.node_list:
+                node.status = Node_Status.Disconnect
+            
+            self.uart_sent(data) # since root module will reset, it will not return anything
+            return b'S'
+
+        # pass command to uart
         return self.uart_sent(data)
 
 # ============================= UART Callback Logics =================================
@@ -212,6 +225,7 @@ class Network_Manager():
                 node = node_list[0]
                 node.uuid = node_uuid
                 node.status = Node_Status.Active
+            print(f"Node-{node_addr} connected")
             return b'S'
             
         ############## other Opcodes pass to client-API using socket ##############

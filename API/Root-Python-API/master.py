@@ -13,8 +13,8 @@ def edge_robot_request_handler_example(node_addr):
 
 
 def socket_message_callback_example(message_data: bytes):
-    print("[Socket]", end="=>")
-    print(f"Received message: {message_data}")
+    # print("[Socket]", end="=>")
+    # print(f"Received message: {message_data}")
     
     node_addr_bytes = message_data[0:2]
     opcode_bytes = message_data[2:5]
@@ -28,7 +28,7 @@ def socket_message_callback_example(message_data: bytes):
         print("Can't parse opcode", opcode)
         return
 
-    print("node_addr:",node_addr, ", opcode:", opcode, ", payload:", payload_bytes)
+    # print("node_addr:",node_addr, ", opcode:", opcode, ", payload:", payload_bytes)
 
         
     # notify subscribers
