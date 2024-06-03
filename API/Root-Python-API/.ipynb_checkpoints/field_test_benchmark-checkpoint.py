@@ -143,9 +143,12 @@ def test_initialization(socket_api, test_name, test_parameter_bytes, node_amount
     if node_amount == 1:
         command = "SEND-"
 
-    success, _ = send_command(socket_api, command, node_addr, "TSTS".encode()) 
+    print(f" - Starting Test on Node-{node_addr}, command: '{command}'")
+    success, _ = send_command(socket_api, command, node_addr, "TSTS".encode())
     if not success:
         return False
+
+    time.sleep(1) # Testing, TB Finished (remove) ----------------------------------------------------------------
     print(f" - Started Test on edge")
 
     return True # success
@@ -201,7 +204,6 @@ def connect_N_node(socket_api, node_amount):
     test_name = "TEST0" # to be renamed ------------------------------------------------------------------
     test_parameter_byte = b''
     
-    
     # subscribe("[NET]", test_0_network_status_callback)
     # ----------- Test 0 -----------
     while attempts < max_attempts:
@@ -224,10 +226,21 @@ def connect_N_node(socket_api, node_amount):
         
         # Starting test
         # reset root
+        root_online = False
+        def wait_for_root_restart(data):
+            nonlocal root_online # refer to the root_online defined above
+            root_online = True
+        
+        subscribe("[R]", wait_for_root_restart)
         success, _ = send_command(socket_api, "RST-R", 0, b'') 
         if not success:
             continue
-        print(f" - Root reseted, wating on edge connect back")
+        print(f" - Root reseting")
+
+        while root_online == False:
+            pass
+        print(f" - Root restarted, wating on edge connect back")
+        unsubscribe("[R]", wait_for_root_restart)
         
         # check active node count on network
         start_time = time.time()

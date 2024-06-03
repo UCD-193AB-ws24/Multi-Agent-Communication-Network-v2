@@ -15,6 +15,7 @@ class Uart_Manager:
         self.serial_connection = None
         self.uart_thread = None
         self.callback_func = None
+        self.is_serial_connected = False
         
         self.uart_connect()
             
@@ -23,6 +24,7 @@ class Uart_Manager:
         if self.uart_port != uart_port and self.serial_connection != None:
             self.serial_connection.close()
             self.serial_connection = None
+            self.is_serial_connected = False
         
         self.uart_port = uart_port
         self.uart_baud_rate = uart_baud_rate
@@ -31,11 +33,13 @@ class Uart_Manager:
     def uart_connect(self):
         if self.serial_connection != None:
             print("Uart port already connected:", self.uart_port)
+            self.is_serial_connected = True
             return
         
         # try connect to new port
         try:
             self.serial_connection = serial.Serial(self.uart_port, self.uart_baud_rate)
+            self.is_serial_connected = True
             print("connected to serial port", self.uart_port)
         except:
             print("unable to connect to serial port", self.uart_port)
@@ -82,19 +86,24 @@ class Uart_Manager:
             # byte >= escape_byte, encode escaped byte
             byte_encoded = escape_byte ^ byte
             result += escape_byte.to_bytes(1, 'big') # get the bytestring of this byte
-            result += byte_decoded.to_bytes(1, 'big') # get the bytestring of this byte
+            result += byte_encoded.to_bytes(1, 'big') # get the bytestring of this byte
         # while loop done
         
         return result
     
     def sent_data(self, data):
         if self.serial_connection != None:
+            self.is_serial_connected = True
             data_encoded = self.uart_encoder(data)
             self.serial_connection.write(uart_start) # spcial byte marking start
             self.serial_connection.write(data_encoded)
             self.serial_connection.write(uart_end)   # spcial byte marking end
+            print(f"[UART] Sended '{data}'")
+            return b'S'
+        else:
+            return b'F' + "No Serial Connection".encode()
     
-    def attack_callback(self, callback_func):
+    def attach_callback(self, callback_func):
         self.callback_func = callback_func
         print(f"[Uart] Successfully attached callback function, {type(self.callback_func)}")
     
@@ -128,6 +137,7 @@ class Uart_Manager:
         
         while True:
             if self.serial_connection != None:
+                self.is_serial_connected = True
                 try:
                     uart_message = self.uart_read_message()
                     self.uart_event_handler(uart_message)
