@@ -208,7 +208,7 @@ class Network_Manager():
 
 # Other Utility Function
 def encodeNodeAddr(addr: int) -> bytes:
-    return struct.pack('!H', node_addr) # encoded from host to network endianess (byte order)
+    return struct.pack('!H', addr) # encoded from host to network endianess (byte order)
 
 def parseNodeAddr(addr_bytes: bytes) -> int:
     # parse 2 byte into number
