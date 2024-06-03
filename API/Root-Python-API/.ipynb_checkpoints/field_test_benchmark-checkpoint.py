@@ -125,6 +125,64 @@ def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> tu
     response = response[1:]
     return (True, response)
 
+def test_initialization(socket_api,test_name,  node_amount, broadcast_timeout, node_addr):
+    # broadcast 'TST|I|test_name' (test init) to initilize test on edge device
+    success = broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_amount, broadcast_timeout)
+    if not success:
+        return False
+    print(f"Initialized Test on edge")
+
+    # send 'TST|S' (test start) to edge device
+    command = "BCAST"
+    if node_amount == 1:
+        command = "SEND-"
+        
+    success, _ = send_command(socket_api, command, node_addr, "TSTS") 
+    if not success:
+        return False
+    print(f"Started Test on edge")
+
+    return True # success
+
+def test_termination(socket_api):
+    # broadcast 'TST|F' (test finish) to edge device
+    success, _ = send_command(socket_api, "BCAST", 0, "TSTF") 
+    if not success:
+        return False
+    print(f"Finished Test on edge by broadcast")
+    return True
+
+def get_N_Nodes(node_amount):
+    message_byte = craft_message_example("NSTAT", 0, b'') 
+    data = socket_api.socket_sent(message_byte)
+    error_code = data[0]
+    payload = data[1:]
+    
+    if error_code != ord('S'):
+        print("Failed to retrive node status from server: ", payload)
+        return (None, "Failed to retrive node status")
+        
+    # Decode the received bytes
+    network_status_json = payload.decode('utf-8')
+    network_status = json.loads(network_status_json)
+
+    network_node_amount = network_status["node_amount"]
+    node_addr_list = network_status["node_addr_list"]
+    node_status_list = network_status["node_status_list"]
+    
+    selected = []
+    
+    for i in range(network_node_amount):
+        if len(selected) == node_amount:
+            return (selected, "Success")
+        
+        if node_status_list[i] == 1:
+            selected.append(node_addr_list[i])
+
+    # no enough nodes in network
+    return (None, "No enough nodes in network")
+
+# =============== Testers ====================
 def connect_N_node(socket_api, node_amount):
     # check if uart is running, root is runing, has 10 node
     # FLDTS
@@ -141,18 +199,13 @@ def connect_N_node(socket_api, node_amount):
         attempts += 1
         print(f"\n===== Starting test-0 with attempt-{attempts}/{max_attempts} ===== ")
         
-        # broadcast 'TST|I|name' (test init) to initilize test on edge device
-        success = broadcast_initialization_and_wait_for_confirm(socket_api, "TEST0", node_amount, broadcast_timeout)
+        # broadcast to initialize and start test on edge
+        success = test_initialization(socket_api, "TEST0", node_amount, broadcast_timeout)
         if not success:
             continue
         print(f"Initilied Test on edge by broadcast")
         
-        # broadcast 'TST|S' (test start) to edge device
-        success, _ = send_command(socket_api, "BCAST", 0, "TSTS") 
-        if not success:
-            continue
-        print(f"Started Test on edge by broadcast")
-        
+        # Starting test
         # reset root
         success, _ = send_command(socket_api, "RST-R", 0, "") 
         if not success:
@@ -182,7 +235,7 @@ def connect_N_node(socket_api, node_amount):
         if len(broadcast_confirmed_node) < node_amount:
             continue
         
-        # test succeed, all node connecetd
+        # finished the test on current attempt
         print(f"All {node_amount} node conneceted back, test finished")
         # log result
         attempts = max_attempts + 1
@@ -196,7 +249,7 @@ def connect_N_node(socket_api, node_amount):
         # print the result
     else:
         print("Connect N node Failed")
-    # ----------- Test 0 -----------
+    # ----------- connect_N_node -----------
     
     
     
@@ -206,6 +259,103 @@ def ping_N_node(node_amount, data_size, send_rate, time):
     pass
 
     
-def request_test(node_amount, data_size, send_rate, time):
-    # request_test on n_node
-    pass
+# request_test on n_node
+def request_test(node_amount, request_name):
+    global network_node_amound, broadcast_confirmed_node
+    attempts = 0
+    max_attempts = 3
+    broadcast_timeout = 10
+    node_addr = 0
+    test_name = "Request" # to be renamed ------------------------------------------------------------------
+    
+    if node_amount == 1:
+        # get a list of n nodes
+        node_addr_list, error_msg = get_N_Nodes(node_amount)
+        if node_addr_list == None:
+            print(error_msg)
+            return
+        node_addr = node_addr_list[0]
+        
+    while attempts < max_attempts:
+        attempts += 1
+        print(f"\n===== Starting '{request_name}' request_test on {node_amount} nodes with attempt-{attempts}/{max_attempts} ===== ")
+        
+        # Test Initialization
+        success = test_initialization(socket_api, test_name, node_amount, broadcast_timeout, node_addr)
+        if not success:
+            continue
+        print(f"Edge will now send '{request_name}' request")
+        
+        # Test Body
+        time.sleep(5) # requests from edge will show up on the other thread, need to monitor the traffic
+        
+        success = test_termination(socket_api)
+        if not success:
+            continue
+        
+        print(f"Request Test finished")
+        # log result
+        attempts = max_attempts + 1
+        break
+        
+    # test finished
+    if attempts == max_attempts + 1:
+        current_time = time.time()
+        time_elapsed = current_time - start_time
+        print(f"'{request_name}' Request Test Succeed")
+        # print the result
+    else:
+        print(f"'{request_name}' Request Test Failed")
+    # ----------- request_test -----------
+    
+    
+# data_update_test on n_node
+def data_update_test(node_amount, data_size, edge_send_rate):
+    global network_node_amound, broadcast_confirmed_node
+    attempts = 0
+    max_attempts = 3
+    broadcast_timeout = 10
+    node_addr = 0
+    test_name = "TESTD" # to be renamed ------------------------------------------------------------------
+    test_name += f" {data_size} bytes {edge_send_rate} Hz"
+    
+    if node_amount == 1:
+        # get a list of n nodes
+        node_addr_list, error_msg = get_N_Nodes(node_amount)
+        if node_addr_list == None:
+            print(error_msg)
+            return
+        node_addr = node_addr_list[0]
+        
+    while attempts < max_attempts:
+        attempts += 1
+        print(f"\n===== Starting data_update_test ({data_size} bytes, {edge_send_rate} Hz) on {node_amount} nodes with attempt-{attempts}/{max_attempts} ===== ")
+        
+        # Test Initialization
+        success = test_initialization(socket_api, test_name, node_amount, broadcast_timeout, node_addr)
+        if not success:
+            continue
+        print(f"Edge will now send {data_size} bytes data update on {edge_send_rate} Hz")
+        
+        # Test Body, data update will be sened
+        # TB Finished when we have edge check the data been sended by request data from server
+        # for 30 second
+        time.sleep(30)
+        
+        success = test_termination(socket_api)
+        if not success:
+            continue
+            
+        # finished the test on current attempt
+        attempts = max_attempts + 1
+        break
+        
+    # test finished
+    if attempts == max_attempts + 1:
+        current_time = time.time()
+        time_elapsed = current_time - start_time
+        print(f"Data Request Test Finished")
+        # print the result
+    else:
+        print(f"Request Test Failed")
+    # ----------- data_update_test -----------
