@@ -264,6 +264,8 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, time) -> tuple[bo
             result_from_callback[broadcast_confirmed_node[i]] = (old_tuple[0]+1, old_tuple[1], old_tuple[2], start_time)
             send_command(socket_api, "SEND-", broadcast_confirmed_node[i], payload)
             time.sleep(send_rate)
+            if time.time() - ping_start_time > time:
+                break
     
     # leave the timeout_time for the last packet to return
     print("End of sending Ping request, Waiting for last response packet")
