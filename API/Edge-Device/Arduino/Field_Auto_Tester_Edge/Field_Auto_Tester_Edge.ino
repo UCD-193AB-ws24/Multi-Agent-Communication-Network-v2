@@ -414,6 +414,7 @@ void network_message_handler(byte* data, size_t length) {
       ble_cmd[5] = 0x00;
       ble_cmd[6] = 0x00;
 
+      delay(1000);
       uart_write_encoded_bytes(ble_cmd, 7, ble_cmd, 0);
       uart_log_encoded_bytes(ble_cmd, 7, ble_cmd, 0);
   }

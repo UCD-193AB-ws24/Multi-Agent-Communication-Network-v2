@@ -232,10 +232,16 @@ def connect_N_node(socket_api, node_amount):
             root_online = True
         
         subscribe("[R]", wait_for_root_restart)
+        success, _ = send_command(socket_api, "CLEAN", 0, b'') 
+        if not success:
+            continue
+        print(f" - Root resetting")
+        time.sleep(5) # bc RST on edge will need 1 second delay, lagacy issue from arduriono, will remove -----------------------------
+        
         success, _ = send_command(socket_api, "RST-R", 0, b'') 
         if not success:
             continue
-        print(f" - Root reseting")
+        print(f" - Root restarting")
 
         while root_online == False:
             pass

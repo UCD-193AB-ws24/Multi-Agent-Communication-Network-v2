@@ -46,20 +46,19 @@ def data_request_example(socket_manager, node_addr, data_type):
         print("Failed to get data")
         return
 
-def full_restart_root(socket_manager):
-    message = craft_message_example( "RST-R", 0, b'')
-    response = socket_manager.socket_sent(message)
-    if response[0:1] == b'F':
-        print("Failed to get data")
-        return
+# def full_restart_root(socket_manager):
+#     message = craft_message_example( "RST-R", 0, b'')
+#     response = socket_manager.socket_sent(message)
+#     if response[0:1] == b'F':
+#         print("Failed to get data")
+#         return
 
 def main():
     server_addr = (server_ip, server_port)
     socket_api = Socket_Manager(server_addr, socket_message_callback_example)
     socket_api.run_socket_listen_thread()
-    full_restart_root(socket_api)
-    
-    time.sleep(1)
+    # full_restart_root(socket_api)
+    # time.sleep(1)
 
     connect_N_node(socket_api, 1)
     
