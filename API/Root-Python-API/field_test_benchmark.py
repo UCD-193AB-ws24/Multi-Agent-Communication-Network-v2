@@ -207,6 +207,5 @@ def ping_N_node(node_amount, data_size, send_rate, time):
 
     
 def request_test(node_amount, data_size, send_rate, time):
-    # measure RTT and Pkt loss for sending
-    # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
+    # request_test on n_node
     pass

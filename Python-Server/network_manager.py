@@ -1,5 +1,6 @@
 import struct
 import time
+import json
 from node import Node, Node_Status
 
 shared_node_list = []
@@ -151,7 +152,19 @@ class Network_Manager():
             return b'S' + count.to_bytes(1, byteorder='big')
         
         if command == "NSTAT": # retrive network node status
-            pass    
+            network_status = {
+                "node_amount" : 0,
+                "node_addr_list": [],
+                "node_status_list": []
+            }
+            network_status["node_amount"] = len(self.node_list)
+            network_status["node_addr_list"] = list(map(lambda node: node.address, self.node_list)
+            network_status["node_status_list"] = list(map(lambda node: 1 if node.status == Node_Status.Active else 0, self.node_list)
+            
+            # Serialize and Send JSON data
+            network_status_json = json.dumps(network_status)
+            network_status_bytes = network_status_serial.encode('utf-8')
+            return b'S' + network_status_bytes
         
         if command == "NINFO": # retrive network node info
             # ask net_info from esp-root, give it to socket API
