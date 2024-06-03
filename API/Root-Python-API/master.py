@@ -1,6 +1,6 @@
 from socket_api import Socket_Manager
 from socket_api import parseNodeAddr, craft_message_example
-from field_test_benchmark import Test_0_connect_10_node
+from field_test_benchmark import connect_N_node
 from opcode_subscribe import subscribe, unsubscribe, notify
 import time
 # self_port = 6001
@@ -13,7 +13,7 @@ def edge_robot_request_handler_example(node_addr):
 
 
 def socket_message_callback_example(message_data: bytes):
-    print("callback called")
+    print("[Socket]", end="=>")
     print(f"Received message: {message_data}")
     
     node_addr_bytes = message_data[0:2]
@@ -27,10 +27,12 @@ def socket_message_callback_example(message_data: bytes):
     except:
         print("Can't parse opcode", opcode)
         return
+
+    print("node_addr:",node_addr, ", opcode:", opcode, ", payload:", payload_bytes)
+
         
     # notify subscribers
     notify(opcode, message_data)
-
     # handler socket message
     if opcode == "[REQ]":
         # request from edge
@@ -44,21 +46,30 @@ def data_request_example(socket_manager, node_addr, data_type):
         print("Failed to get data")
         return
 
+def full_restart_root(socket_manager):
+    message = craft_message_example( "RST-R", 0, b'')
+    response = socket_manager.socket_sent(message)
+    if response[0:1] == b'F':
+        print("Failed to get data")
+        return
 
 def main():
     server_addr = (server_ip, server_port)
     socket_api = Socket_Manager(server_addr, socket_message_callback_example)
     socket_api.run_socket_listen_thread()
+    full_restart_root(socket_api)
+    
+    time.sleep(1)
 
-    Test_0_connect_10_node(socket_api)
+    connect_N_node(socket_api, 1)
     
     
     print("Programe still running...")
     time.sleep(10)
     while True:
         # print("Programe still running...")
-        data_request_example(socket_api,5, "GPS")
-        time.sleep(2)
+        data_request_example(socket_api,6, "GPS")
+        time.sleep(10)
 
 if __name__ == "__main__":
     main()

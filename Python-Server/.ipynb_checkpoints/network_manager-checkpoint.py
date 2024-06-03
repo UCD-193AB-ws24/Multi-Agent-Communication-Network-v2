@@ -158,12 +158,12 @@ class Network_Manager():
                 "node_status_list": []
             }
             network_status["node_amount"] = len(self.node_list)
-            network_status["node_addr_list"] = list(map(lambda node: node.address, self.node_list)
-            network_status["node_status_list"] = list(map(lambda node: 1 if node.status == Node_Status.Active else 0, self.node_list)
+            network_status["node_addr_list"] = list(map(lambda node: node.address, self.node_list))
+            network_status["node_status_list"] = list(map(lambda node: 1 if node.status == Node_Status.Active else 0, self.node_list))
             
             # Serialize and Send JSON data
             network_status_json = json.dumps(network_status)
-            network_status_bytes = network_status_serial.encode('utf-8')
+            network_status_bytes = network_status_json.encode('utf-8')
             return b'S' + network_status_bytes
         
         if command == "NINFO": # retrive network node info
@@ -220,7 +220,7 @@ class Network_Manager():
 # ======================= End of Network Manager Class ================================
 
 # Other Utility Function
-def encodeNodeAddr(addr: int) -> bytes:
+def encodeNodeAddr(node_addr: int) -> bytes:
     return struct.pack('!H', node_addr) # encoded from host to network endianess (byte order)
 
 def parseNodeAddr(addr_bytes: bytes) -> int:

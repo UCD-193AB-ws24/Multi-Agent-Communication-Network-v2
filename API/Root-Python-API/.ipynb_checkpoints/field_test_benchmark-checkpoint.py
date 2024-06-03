@@ -47,6 +47,7 @@
 # 7 - Record the Timestamp of each node connected 
 
 import time
+import json
 from socket_api import Socket_Manager  # class object
 from socket_api import craft_message_example, parseNodeAddr  # function
 from opcode_subscribe import subscribe, unsubscribe
@@ -58,25 +59,30 @@ broadcast_confirmed_node = []
 
 
 def field_test_broadcast_confirm_callback(message: bytes):
+    global broadcast_confirmed_node, current_test
     node_addr = parseNodeAddr(message[0:2])
     opcode = message[2:5] # subscriped opcode 'CPY'
     payload = message[5:]
     
     try:
-        payload = payload.decode()
+        payload = payload.decode('utf-8')
     except:
         print(f"failed to decode payload {payload}")
         return
+        
+    print("[Callback] node_addr:",node_addr, ", opcode:", opcode.decode('utf-8'), ", payload:", payload)
     
     if payload[0] != "I":
         print(f"wrong copy message, not 'I' - test initialization")
         return
         
     test_name = payload[1:]
+    print(f"test_name: '{test_name}', current_test: '{current_test}'")
     if test_name == current_test:
         broadcast_confirmed_node.append(node_addr)
 
 def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_amount, timeout):
+    global network_node_amound, broadcast_confirmed_node, current_test
     broadcast_confirmed_node = []
     current_test = test_name
     
@@ -136,8 +142,9 @@ def test_initialization(socket_api,test_name,  node_amount, broadcast_timeout, n
     command = "BCAST"
     if node_amount == 1:
         command = "SEND-"
-        
-    success, _ = send_command(socket_api, command, node_addr, "TSTS") 
+
+    print("----sending start---- node_addr:", node_addr)
+    success, _ = send_command(socket_api, command, node_addr, "TSTS".encode()) 
     if not success:
         return False
     print(f"Started Test on edge")
@@ -146,13 +153,13 @@ def test_initialization(socket_api,test_name,  node_amount, broadcast_timeout, n
 
 def test_termination(socket_api):
     # broadcast 'TST|F' (test finish) to edge device
-    success, _ = send_command(socket_api, "BCAST", 0, "TSTF") 
+    success, _ = send_command(socket_api, "BCAST", 0, "TSTF".encode()) 
     if not success:
         return False
     print(f"Finished Test on edge by broadcast")
     return True
 
-def get_N_Nodes(node_amount):
+def get_N_Nodes(socket_api, node_amount):
     message_byte = craft_message_example("NSTAT", 0, b'') 
     data = socket_api.socket_sent(message_byte)
     error_code = data[0]
@@ -171,13 +178,14 @@ def get_N_Nodes(node_amount):
     node_status_list = network_status["node_status_list"]
     
     selected = []
-    
+
+    print(f"network_node_amount: {network_node_amount}")
     for i in range(network_node_amount):
-        if len(selected) == node_amount:
-            return (selected, "Success")
-        
         if node_status_list[i] == 1:
             selected.append(node_addr_list[i])
+            
+        if len(selected) == node_amount:
+            return (selected, "Success")
 
     # no enough nodes in network
     return (None, "No enough nodes in network")
@@ -191,23 +199,33 @@ def connect_N_node(socket_api, node_amount):
     max_attempts = 3
     broadcast_timeout = 10
     conenct_node_timeout = 20
-    # node_amount = 10
+    node_addr = 0
+    test_name = "TEST0" # to be renamed ------------------------------------------------------------------
+    
     
     # subscribe("[NET]", test_0_network_status_callback)
     # ----------- Test 0 -----------
     while attempts < max_attempts:
         attempts += 1
         print(f"\n===== Starting test-0 with attempt-{attempts}/{max_attempts} ===== ")
+
+        if node_amount == 1 and node_addr == 0:
+            # get a list of n nodes
+            node_addr_list, error_msg = get_N_Nodes(socket_api, node_amount)
+            if node_addr_list == None:
+                print(error_msg)
+                continue
+            node_addr = node_addr_list[0]
         
         # broadcast to initialize and start test on edge
-        success = test_initialization(socket_api, "TEST0", node_amount, broadcast_timeout)
+        success = test_initialization(socket_api, test_name, node_amount, broadcast_timeout, node_addr)
         if not success:
             continue
         print(f"Initilied Test on edge by broadcast")
         
         # Starting test
         # reset root
-        success, _ = send_command(socket_api, "RST-R", 0, "") 
+        success, _ = send_command(socket_api, "RST-R", 0, b'') 
         if not success:
             continue
         print(f"Root reseted, wating on edge connect back")
@@ -224,7 +242,7 @@ def connect_N_node(socket_api, node_amount):
                 print(f"Timeout Trigered, failed to connect {node_amount} nodes in {conenct_node_timeout}")
                 break
                 
-            success, response = send_command(socket_api, "ACT-C", 0, "")
+            success, response = send_command(socket_api, "ACT-C", 0, b'')
             new_active_count = response[0]
             if active_count != new_active_count:
                 print(f" - {active_count} node connected with {round(time_elapsed, 2)} second elapsed")
@@ -245,10 +263,11 @@ def connect_N_node(socket_api, node_amount):
     if attempts == max_attempts + 1:
         current_time = time.time()
         time_elapsed = current_time - start_time
-        print("Connect N node Succeed, time: ", round(time_elapsed, 2) , "s")
+        print("Connect N node Succeed, time: ", round(time_elapsed, 5) , "s")
         # print the result
     else:
         print("Connect N node Failed")
+    print(f"\n===== Exiting test-0 =====\n\n")
     # ----------- connect_N_node -----------
     
     
