@@ -1,4 +1,6 @@
 #include <string.h>
+#include <stdio.h>
+#include <stdint.h>
 
 #define MAX_MSG_LEN 256
 #define BLE_CMD_LEN 5
@@ -14,6 +16,11 @@ volatile bool requestButtonPressed = false;
 unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 100; // Debounce delay in milliseconds
 volatile bool lastButtonState = HIGH;
+
+uint16_t getAddr(uint8_t* bytes) {
+  uint16_t hostOrderValue = (bytes[0] << 8) | bytes[1];
+  return hostOrderValue;
+}
 
 // ====================== will move to other file ===========================
 /* UART Base function, encode and decode uart message */
@@ -97,7 +104,7 @@ void uart_write_encoded_bytes(byte* ble_cmd, size_t ble_cmd_len, byte* data_buff
 size_t uart_readAndDecode_message(HardwareSerial& serial_port, byte* data_buffer, size_t buffer_len, size_t* data_len_ptr) {
   size_t byte_read = 0;
   size_t data_len = 0;
-  
+
   if (serial_port.available() <= 0) {
     *data_len_ptr = 0;
     return 0;
@@ -341,14 +348,30 @@ int16_t fake_gps = 64000;
 int16_t fake_lds = 59910;
 int8_t fake_idx = 0;
 
-void network_message_handler(byte* data, size_t length) {
-  // 2 byte addr
+void network_message_handler(byte* data, size_t length) { 
+  uint16_t node_addr = getAddr(data);
   char* opcode = (char*) data + 2;
   char* payload = (char*) data + 5;
+
+  if (true) {
+    byte uart_start = UART_START;
+    byte uart_end = UART_END;
+    Serial.print("[Handler] recived ");
+    Serial.print(length);
+    Serial.print(" bytes, opcode: ");
+    Serial.write(opcode, 3);
+    Serial.print(", payload: ");
+    Serial.write((uint8_t*) payload, length - 5);
+    Serial.print(", from node-");
+    Serial.print(node_addr);
+    Serial.print("\n");
+    Serial.write(&uart_end, 1);
+  }
 
   if (strncmp(opcode, "TST", 3) == 0) {
     // is our Test opcode 'TST'
     if (strncmp(payload, "I", 1) == 0)  {
+      Serial.print("IS TST|I \n");
       byte uart_start = UART_START;
       byte uart_end = UART_END;
       // Serial.write(&uart_start, 1);
@@ -368,6 +391,7 @@ void network_message_handler(byte* data, size_t length) {
       buf_itr += length - 5;
       ble_send_to_root(buffer, buf_itr - buffer);
     } else if (strncmp(payload, "S", 1) == 0)  {
+      Serial.print("IS TST|S \n");
       // start test, only the reset and reconnect test example on arduino
       byte uart_start = UART_START;
       byte uart_end = UART_END;
@@ -397,7 +421,8 @@ void loop() {
   // check if there is uart message
   byte data[1024];
   size_t data_len = 0;
-  size_t byte_read = uart_readAndDecode_message(Serial1, data, 1024, &data_len);
+  size_t byte_read = 0;
+  byte_read = uart_readAndDecode_message(Serial1, data, 1024, &data_len);
   // size_t byte_read = uart_readAndDecode_message_USB(Serial, data, 1024, &data_len);
 
   // Debug log
@@ -416,7 +441,7 @@ void loop() {
   }
 
   // send update
-  if (time - lastSendTime >= 18000) {
+  if (time - lastSendTime >= 25000) {
     lastSendTime = time;
     sendTestMultipleData(&fake_gps, &fake_lds, &fake_idx);
     fake_gps += 20;
