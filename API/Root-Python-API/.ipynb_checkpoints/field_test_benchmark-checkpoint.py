@@ -49,7 +49,7 @@
 import time
 import json
 from socket_api import Socket_Manager  # class object
-from socket_api import craft_message_example, parseNodeAddr  # function
+from socket_api import craft_message_example, parseNodeAddr, encodeNodeAddr  # function
 from opcode_subscribe import subscribe, unsubscribe
 
 # globl variable so it can be accessed by all test and reused
@@ -81,7 +81,7 @@ def field_test_broadcast_confirm_callback(message: bytes):
     if test_name == current_test:
         broadcast_confirmed_node.append(node_addr)
 
-def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_amount, timeout):
+def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_parameter_bytes, node_amount, timeout):
     global network_node_amound, broadcast_confirmed_node, current_test
     broadcast_confirmed_node = []
     current_test = test_name
@@ -93,7 +93,7 @@ def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_am
     # broadcast 'ECH' (echo) message - expecting copy from edge
     #            test  initialize  test_name
     message_str = "TST" + "I" + test_name
-    message_byte = craft_message_example("BCAST", 0, message_str.encode()) 
+    message_byte = craft_message_example("BCAST", 0, message_str.encode() + test_parameter_bytes) 
     socket_api.socket_sent(message_byte)
 
     # timeout
@@ -131,9 +131,9 @@ def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> tu
     response = response[1:]
     return (True, response)
 
-def test_initialization(socket_api,test_name,  node_amount, broadcast_timeout, node_addr):
+def test_initialization(socket_api, test_name, test_parameter_bytes, node_amount, broadcast_timeout, node_addr):
     # broadcast 'TST|I|test_name' (test init) to initilize test on edge device
-    success = broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_amount, broadcast_timeout)
+    success = broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_parameter_bytes, node_amount, broadcast_timeout)
     if not success:
         return False
     print(f" - Initialized Test on edge")
@@ -199,6 +199,7 @@ def connect_N_node(socket_api, node_amount):
     conenct_node_timeout = 20
     node_addr = 0
     test_name = "TEST0" # to be renamed ------------------------------------------------------------------
+    test_parameter_byte = b''
     
     
     # subscribe("[NET]", test_0_network_status_callback)
@@ -217,7 +218,7 @@ def connect_N_node(socket_api, node_amount):
             node_addr = node_addr_list[0]
         
         # broadcast to initialize and start test on edge
-        success = test_initialization(socket_api, test_name, node_amount, broadcast_timeout, node_addr)
+        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, node_addr)
         if not success:
             continue
         
@@ -285,7 +286,8 @@ def request_test(node_amount, request_name):
     max_attempts = 3
     broadcast_timeout = 10
     node_addr = 0
-    test_name = "Request" # to be renamed ------------------------------------------------------------------
+    test_name = "TESTR" # to be renamed ------------------------------------------------------------------
+    test_parameter_byte = b''
     
     if node_amount == 1:
         # get a list of n nodes
@@ -300,7 +302,7 @@ def request_test(node_amount, request_name):
         print(f"\n===== Starting '{request_name}' request_test on {node_amount} nodes with attempt-{attempts}/{max_attempts} ===== ")
         
         # Test Initialization
-        success = test_initialization(socket_api, test_name, node_amount, broadcast_timeout, node_addr)
+        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, node_addr)
         if not success:
             continue
         print(f"Edge will now send '{request_name}' request")
@@ -336,7 +338,8 @@ def data_update_test(node_amount, data_size, edge_send_rate):
     broadcast_timeout = 10
     node_addr = 0
     test_name = "TESTD" # to be renamed ------------------------------------------------------------------
-    test_name += f" {data_size} bytes {edge_send_rate} Hz"
+    # 2 byte data size, 1 byte send rate
+    test_parameter_byte = b'' + struct.pack('!H', data_size) + struct.pack('b', edge_send_rate % 255)
     
     if node_amount == 1:
         # get a list of n nodes
@@ -351,7 +354,7 @@ def data_update_test(node_amount, data_size, edge_send_rate):
         print(f"\n===== Starting data_update_test ({data_size} bytes, {edge_send_rate} Hz) on {node_amount} nodes with attempt-{attempts}/{max_attempts} ===== ")
         
         # Test Initialization
-        success = test_initialization(socket_api, test_name, node_amount, broadcast_timeout, node_addr)
+        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, node_addr)
         if not success:
             continue
         print(f"Edge will now send {data_size} bytes data update on {edge_send_rate} Hz")

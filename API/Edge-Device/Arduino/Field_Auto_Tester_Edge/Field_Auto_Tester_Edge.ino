@@ -393,8 +393,8 @@ void network_message_handler(byte* data, size_t length) {
     } else if (strncmp(payload, "S", 1) == 0)  {
       Serial.print("IS TST|S \n");
       // start test, only the reset and reconnect test example on arduino
-      byte uart_start = UART_START;
-      byte uart_end = UART_END;
+      // byte uart_start = UART_START;
+      // byte uart_end = UART_END;
       // Serial.write(&uart_start, 1);
       // Serial.print("Trying to Restart");
       // Serial.write(&uart_end, 1);
@@ -407,6 +407,15 @@ void network_message_handler(byte* data, size_t length) {
       uart_write_encoded_bytes(ble_cmd, 7, ble_cmd, 0);
       uart_log_encoded_bytes(ble_cmd, 7, ble_cmd, 0);
     }
+  } else if ((strncmp(opcode, "RST", 3) == 0)) {
+      byte ble_cmd[7] = "RST-E";
+      
+      // 2 byte dst_addr, 0 for root
+      ble_cmd[5] = 0x00;
+      ble_cmd[6] = 0x00;
+
+      uart_write_encoded_bytes(ble_cmd, 7, ble_cmd, 0);
+      uart_log_encoded_bytes(ble_cmd, 7, ble_cmd, 0);
   }
 
 }
