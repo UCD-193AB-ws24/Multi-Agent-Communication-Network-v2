@@ -55,10 +55,6 @@ from opcode_subscribe import subscribe, unsubscribe
 network_node_amound = 0
 current_test = ""
 broadcast_confirmed_node = []
-# this is for holding result from any callback function
-# one should be enough since the test code is serial there is only one current_test, so only one callback function should be active
-# if late response come in from old test, it the call back function should set to be ignored
-result_from_callback = {}
 
 
 def field_test_broadcast_confirm_callback(message: bytes):
@@ -203,111 +199,14 @@ def connect_N_node(socket_api, node_amount):
     # ----------- Test 0 -----------
     
     
-def ping_N_node_callback(message: bytes):
-    # need to make sure the current test is still correct, if it's message from a old test, ignore it
-    # if current_test != "Ping_N_Node":
-    #     return
-    end_time = time.time()
-    node_addr = parseNodeAddr(message[0:2])
-    opcode = message[2:5] # subscriped opcode 'CPY'
-    payload = message[5:]
     
-    try:
-        payload = payload.decode()
-    except:
-        print(f"failed to decode payload {payload}")
-        return
-    if opcode != "CPY":
-        print(f"wrong copy message, not 'CPY' - test initialization")
-        return
-    if payload[0] != "P":
-        print(f"wrong copy message, not 'P' - ping response")
-        return
-        
-    old_tuple = result_from_callback[node_addr]
-    start_time = old_tuple[3]
-    total_time = old_tuple[2]
-    result_from_callback[node_addr] = (old_tuple[0] ,old_tuple[1] + 1, total_time + (end_time - start_time), 0.0)
-
-def ping_N_node(socket_api, node_amount, data_size, send_rate, time) -> tuple[bool, str]:
-    # measure RTT and Pkt loss for sending
-    # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
-    # assume the send_rate is how many time between each send
-    # if is by HZ then uncomment the following code
-    
-    # send_rate = 1/send_rate  # 1/Hz = second
-    
-    # asssume we populate the broadcast_confirmed_node[] first through test_initialize() before calling this function
-    #  based on the test_initialize() functin's name it will becalled before this function.
-    
-    ping_packet_timeout_time = 1
-    send_rate = send_rate / node_amount # because there are multiple nodes to be pinged, so total sleep time is less
-    subscribe("CPY", ping_N_node_callback)
-    if node_amount > len(broadcast_confirmed_node):
-        return [False, "Not enough node connected in the network"]
-    if data_size < 6: #  2 address + 3 opcode + payload size minimum of 1 'p'
-        return [False, "Data size too small"]
-    payload = "CPY" + 'P' * (data_size-5) # minus 2 addr and 3 opcode = -5
-    
-    #initialize dictionary
-    for i in range(node_amount):
-        ping_dict = {}
-        ping_dict[broadcast_confirmed_node[i]] = (0,0, 0.0, 0.0) # (number_of_packet_send, numbe_of_packet_received, total_time, start_time)  
-        result_from_callback = ping_dict
-    
-    ping_start_time = time.time()
-    # while withiin the pinging time
-    while time.time() - ping_start_time < time:
-        for i in range(node_amount):
-            start_time = time.time()
-            old_tuple = result_from_callback[broadcast_confirmed_node[i]]
-            result_from_callback[broadcast_confirmed_node[i]] = (old_tuple[0]+1, old_tuple[1], old_tuple[2], start_time)
-            send_command(socket_api, "SEND-", broadcast_confirmed_node[i], payload)
-            time.sleep(send_rate)
-    
-    # leave the timeout_time for the last packet to return
-    print("End of sending Ping request, Waiting for last response packet")
-    time.sleep(ping_packet_timeout_time)
-    
-    # calculate and print the result of ping
-    for i in range(node_amount):
-        result = result_from_callback[broadcast_confirmed_node[i]]
-        print(f"Edge Node {broadcast_confirmed_node[i]}: packet loss: {result[0]-result[1]}/{result[0]}; AVG_RTT: {result[2]/result[1]}")
-    
-    # reset dictionary and callback function that subscribed to "CPY" opcode
-    unsubscribe("CPY", ping_N_node_callback)
-    result_from_callback = {}
-    
-
-    
-def request_test(node_amount, request_name):
+def ping_N_node(node_amount, data_size, send_rate, time):
     # measure RTT and Pkt loss for sending
     # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
     pass
 
-
-def test_initialization(socket_api,test_name,  node_amount, broadcast_timeout):
-    # broadcast 'TST|I|test_name' (test init) to initilize test on edge device
-    success = broadcast_initialization_and_wait_for_confirm(socket_api, test_name, node_amount, broadcast_timeout)
-    if not success:
-        return False
-
-def test_start(socket_api, node_amount, node_addr):
-    # broadcast 'TST|S' (test start) to edge device
-    command = "BCAST"
-    if node_amount == 1:
-        command = "SEND-"
-
-    success, _ = send_command(socket_api, command, node_addr, "TSTS") 
-    if not success:
-        return False
-    print(f"Started Test on edge")
-    return True
-
-def test_termination(socket_api):
-    # broadcast 'TST|F' (test finish) to edge device
-    success, _ = send_command(socket_api, "BCAST", 0, "TSTF") 
-    if not success:
-        return False
-    print(f"Finished Test on edge by broadcast")
-    return True
+    
+def request_test(node_amount, data_size, send_rate, time):
+    # measure RTT and Pkt loss for sending
+    # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
+    pass
