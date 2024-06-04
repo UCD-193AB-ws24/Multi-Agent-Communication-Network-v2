@@ -8,11 +8,11 @@ def subscribe(opcode, callback):
     
 def unsubscribe(opcode, callback):
     if opcode not in socket_event_subscriber:
-        print(f"opcode: \'{opcde}\' has no subscriber")
+        print(f"opcode: \'{opcode}\' has no subscriber")
         return
     
     if callback not in socket_event_subscriber[opcode]:
-        print(f"opcode: \'{opcde}\' has no subscriber from this callback")
+        print(f"opcode: \'{opcode}\' has no subscriber from this callback")
         return
     
     socket_event_subscriber[opcode].remove(callback)
