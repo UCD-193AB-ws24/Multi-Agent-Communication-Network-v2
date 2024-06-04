@@ -1,6 +1,6 @@
 from socket_api import Socket_Manager
 from socket_api import parseNodeAddr, craft_message_example
-from field_test_benchmark import connect_N_node
+from field_test_benchmark import connect_N_node, RTT_tester
 from opcode_subscribe import subscribe, unsubscribe, notify
 import time
 # self_port = 6001
@@ -60,8 +60,8 @@ def main():
     # full_restart_root(socket_api)
     # time.sleep(1)
 
-    connect_N_node(socket_api, 1)
-    
+    # connect_N_node(socket_api, 1)
+    RTT_tester(socket_api, 2, 40, 1, 10)
     
     print("Programe still running...")
     time.sleep(10)
