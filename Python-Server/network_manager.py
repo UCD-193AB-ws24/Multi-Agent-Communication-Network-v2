@@ -14,6 +14,7 @@ class Network_Manager():
         self.node_list = shared_node_list
         self.socket_sent = None
         self.uart_sent = None
+        self.web_socket_send_to_web = None
         self.current_node = None
     
     def add_node(self, name: str, address: int, uuid: b''):
@@ -28,9 +29,10 @@ class Network_Manager():
             # print("Net Manager still running...")
             time.sleep(1)
             
-    def attach_callback(self, socket_sent, uart_sent):
+    def attach_callback(self, socket_sent, uart_sent,  web_socket_send_to_web)):
         self.socket_sent = socket_sent
         self.uart_sent = uart_sent
+        self.web_socket_send_to_web = web_socket_send_to_web
 
     def getActiveNode(self):
         # TB Finish, update on node status base on timestamp
@@ -172,6 +174,17 @@ class Network_Manager():
         if command == "NINFO": # retrive network node info
             # ask net_info from esp-root, give it to socket API
             return b'F' + "Not implmented".encode('utf-8')
+            
+         ############## Command pass to web monitor ##############
+        if command == "W-LOG": # log traffic to website
+            # payload is log message
+            self.web_log(payload)
+            
+        if command == "W-RBT": # update robot status to website
+            # payload is robot status list
+            self.web_robot_status_update(payload)
+
+            
         
          ############## Command get handled in ESP-Root-Module ##############
         # all other commands
@@ -186,6 +199,8 @@ class Network_Manager():
                 node.status = Node_Status.Disconnect
             
             self.uart_sent(data) # since root module will reset, it will not return anything
+            self.web_node_status_update()
+            self.web_log(f"==== Reseting the network ====")
             return b'S'
 
         # pass command to uart
@@ -208,6 +223,7 @@ class Network_Manager():
         ############## Opcodes only updates python server ############## 
         if op_code == "[D]": # Data update
             self.updateNodeData(node_addr, payload)
+            self.web_log(f"[D] recived update from Node-{node_addr}")
             return b'S'
             
         if op_code == "NET": # Network Information
@@ -226,11 +242,67 @@ class Network_Manager():
                 node.uuid = node_uuid
                 node.status = Node_Status.Active
             print(f"Node-{node_addr} connected")
+            self.web_log(f"Node-{node_addr} connected")
+            self.web_node_status_update()
             return b'S'
             
         ############## other Opcodes pass to client-API using socket ##############
         return self.socket_sent(data)
 
+
+# ============================= Web socket send Logics =================================
+    def web_log(self, message):
+        data = {
+            "type": "trafficLog",
+            "message": message
+        }
+        self.web_socket_send_to_web(json.dumps(data))
+        
+    def web_connection_update(self, socket_connection, uart_connection):
+        data = {
+            "type": "networkStatus",
+            "status": "connectionStatus",
+            "socket": socket_connection,
+            "uart": uart_connection
+        }
+        self.web_socket_send_to_web(json.dumps(data))
+
+    def web_node_status_update(self):
+        self.node_list
+        data = {
+            "type": "networkStatus",
+            "status": "nodeStatus",
+            "nodes": []
+        }
+
+        for node in self.node_list:
+            node_info{"name": "", "status": ""}
+            node_info["name"] = "Node-" + node.address
+
+            node_info["status"] = "normal"
+            if node.status != Node_Status.Active:
+                node_info["status"] = "error"
+                
+            data["nodes"].append(node_info)
+        
+        self.web_socket_send_to_web(json.dumps(data))
+        
+    def web_robot_status_update(self, robot_data_list):
+        # Example
+        # "robots": [
+        #     { "id": 1, "name": "Robot Node 1", "state": "Active", "node": 'Node-0' },
+        #     { "id": 2, "name": "Robot Node 2", "state": "Active", "node": 'Node-1' }
+        # ]
+        self.node_list
+        data = data = {
+            "type": "networkStatus",
+            "status": "robotStatus",
+            "robots": robot_data_list
+        }
+        
+        self.web_socket_send_to_web(json.dumps(data))
+
+                
 # ======================= End of Network Manager Class ================================
 
 # Other Utility Function
