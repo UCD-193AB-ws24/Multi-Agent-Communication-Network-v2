@@ -1,6 +1,6 @@
 from socket_api import Socket_Manager
 from socket_api import parseNodeAddr, craft_message_example
-from field_test_benchmark import connect_N_node, RTT_tester
+from field_test_benchmark import connect_N_node, RTT_tester, data_update_test
 from opcode_subscribe import subscribe, unsubscribe, notify
 import time
 # self_port = 6001
@@ -58,16 +58,34 @@ def main():
     socket_api = Socket_Manager(server_addr, socket_message_callback_example)
     socket_api.run_socket_listen_thread()
     # full_restart_root(socket_api)
-    # time.sleep(1)
+    time.sleep(3)
 
-    # connect_N_node(socket_api, 1)
-    RTT_tester(socket_api, 2, 40, 1, 10)
+    node_amount = 4 # control how many node testing
+    desinated_node = 0
+
+    connect_N_node(socket_api, node_amount, desinated_node)
     
+    # RTT_test_parameters = [] # (data_size, send_rate Hz, duration)
+    # RTT_test_parameters.append((10, 0.5, 10))
+    # RTT_test_parameters.append((20, 0.5, 10))
+    # RTT_test_parameters.append((40, 0.5, 60))
+
+    # for desinated_node in range(5, 15):
+    #     print("testing:", desinated_node)
+    #     for i in range(len(RTT_test_parameters)):
+    #         data_size, send_rate, duration = RTT_test_parameters[i]
+    #         RTT_tester(socket_api, node_amount, data_size, send_rate, duration, desinated_node)
+
+    
+    data_update_test(socket_api, node_amount, 20, 1)
+    # connect_N_node(socket_api, node_amount)
+    
+    print("All Test Finished, running [GET] Command")
     print("Programe still running...")
     time.sleep(10)
     while True:
         # print("Programe still running...")
-        data_request_example(socket_api,6, "GPS")
+        data_request_example(socket_api, 5, "GPS")
         time.sleep(10)
 
 if __name__ == "__main__":
