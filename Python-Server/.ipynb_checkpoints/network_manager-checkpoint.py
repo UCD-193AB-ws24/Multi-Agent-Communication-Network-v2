@@ -29,7 +29,7 @@ class Network_Manager():
             # print("Net Manager still running...")
             time.sleep(1)
             
-    def attach_callback(self, socket_sent, uart_sent,  web_socket_send_to_web)):
+    def attach_callback(self, socket_sent, uart_sent,  web_socket_send_to_web):
         self.socket_sent = socket_sent
         self.uart_sent = uart_sent
         self.web_socket_send_to_web = web_socket_send_to_web
@@ -256,7 +256,7 @@ class Network_Manager():
             "type": "trafficLog",
             "message": message
         }
-        self.web_socket_send_to_web(json.dumps(data))
+        self.web_socket_send_to_web(data)
         
     def web_connection_update(self, socket_connection, uart_connection):
         data = {
@@ -265,7 +265,7 @@ class Network_Manager():
             "socket": socket_connection,
             "uart": uart_connection
         }
-        self.web_socket_send_to_web(json.dumps(data))
+        self.web_socket_send_to_web(data)
 
     def web_node_status_update(self):
         self.node_list
@@ -276,7 +276,7 @@ class Network_Manager():
         }
 
         for node in self.node_list:
-            node_info{"name": "", "status": ""}
+            node_info = {"name": "", "status": ""}
             node_info["name"] = "Node-" + node.address
 
             node_info["status"] = "normal"
@@ -285,7 +285,7 @@ class Network_Manager():
                 
             data["nodes"].append(node_info)
         
-        self.web_socket_send_to_web(json.dumps(data))
+        self.web_socket_send_to_web(data)
         
     def web_robot_status_update(self, robot_data_list):
         # Example
@@ -300,7 +300,7 @@ class Network_Manager():
             "robots": robot_data_list
         }
         
-        self.web_socket_send_to_web(json.dumps(data))
+        self.web_socket_send_to_web(data)
 
                 
 # ======================= End of Network Manager Class ================================

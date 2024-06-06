@@ -60,10 +60,10 @@ def main():
     # full_restart_root(socket_api)
     time.sleep(3)
 
-    node_amount = 9 # control how many node testing
+    node_amount = 2 # control how many node testing
     desinated_node = 0
 
-    # connect_N_node(socket_api, node_amount, desinated_node)
+    connect_N_node(socket_api, node_amount, desinated_node)
     
     # RTT_test_parameters = [] # (data_size, send_rate Hz, duration)
     # RTT_test_parameters.append((10, 0.5, 10))

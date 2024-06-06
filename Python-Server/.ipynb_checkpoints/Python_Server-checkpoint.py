@@ -7,7 +7,7 @@ from web_socket_proxy_server import Web_Socket_Manager
 
 PACKET_SIZE = 1024
 server_socket_port = 5001
-proxy_server_port = 5010
+proxy_server_port = 8080
 # port = '/dev/ttyUSB0' #'COM7'
 port = '/dev/ttyUSB0'
 baud_rate = 115200
@@ -39,8 +39,20 @@ def main():
     uart_manager.run()
     socket_manager.run()
     web_manager.run()
-    net_manager.run_on_current_thread()
+
+    print("=== Sending ====== ")
+    data = {
+        "type": "networkStatus",
+        "status": "nodeStatus",
+        "nodes": [
+            {"name": "Node-0", "status": "normal"},
+            {"name": "Node-1", "status": "normal"}
+        ]
+    }
+    web_manager.send_to_web(data)
+    print("=== Sending ====== ")
     
+    net_manager.run_on_current_thread()
 
 if __name__ == "__main__":
     main()
