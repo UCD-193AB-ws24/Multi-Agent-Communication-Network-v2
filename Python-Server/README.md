@@ -7,6 +7,7 @@
 #
 # 'NINFO' get network info
 # 'NSTAT' get network node status
+# 'ND-ST' get individual node status
 # '[GET]' get node data
 # 'ACT-C' get active node count
 # 
@@ -18,6 +19,7 @@
 # 'NET' Network Information message
 # 'NOD' Node Connecetd update message
 # 'RST' root module reseted
+# 'NDS' Node State message   
 # '[D]' node data
 #
 ######################################################################################

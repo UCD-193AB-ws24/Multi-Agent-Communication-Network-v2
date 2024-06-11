@@ -18,7 +18,7 @@ def log_data_hist(data_type, data, time):
 
 class Node_Status(Enum):
     Active = 1
-    Idol = 2
+    Idle = 2
     Disconnect = 3
     
 class Node:

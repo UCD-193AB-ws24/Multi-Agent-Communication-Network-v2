@@ -2,40 +2,41 @@ import asyncio
 import websockets
 import json
 import random
-import datetime
-import sys
+import time
 import threading
 
 class Web_Socket_Manager:
     def __init__(self, host='localhost', port=12345):
         self.host = host
         self.port = port
-        self.connected_clients = set()
+        self.client = None
         self.server = None
+        self.loop = asyncio.new_event_loop()
+        self.server_thread = threading.Thread(target=self.start_loop, args=(self.loop,))
+        self.server_thread.start()
+
+    def start_loop(self, loop):
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
 
     async def register_client(self, websocket):
-        self.connected_clients.add(websocket)
-        print("=== register_client === ")
+        self.client = websocket
         try:
             await websocket.wait_closed()
         finally:
-            self.connected_clients.remove(websocket)
-        print("=== done register_client === ")
+            self.client = None
 
     async def async_send_to_web(self, json_data):
-        print("=== Sending 3 === ")
-        if self.connected_clients:  # Ensure there are connected clients
-            print("=== Sending  3-- === ")
+        print(self.client)
+        print(json_data)
+        if self.client:
             message = json.dumps(json_data)
-            await asyncio.wait([client.send(message) for client in self.connected_clients])
+            await self.client.send(message)
 
     def send_to_web(self, json_data):
-        print("=== Sending 1 === ")
-        loop = asyncio.get_event_loop()
-        print("=== Sending 2 === ")
-        loop.run_until_complete(self.async_send_to_web(json_data))
-        print("=== Sending 4 === ")
-        
+        print(" === send data right now")
+        asyncio.run_coroutine_threadsafe(self.async_send_to_web(json_data), self.loop)
+
     async def start_server(self, websocket, path):
         await self.register_client(websocket)
 
@@ -44,15 +45,37 @@ class Web_Socket_Manager:
         await self.server.wait_closed()
 
     def run(self):
-        # Start the WebSocket server
-        
-        def start_loop(loop):
-            asyncio.set_event_loop(loop)
-            loop.run_forever()
+        asyncio.run_coroutine_threadsafe(self.run_server(), self.loop)
+        print("=== Web socket (server) running ===")
 
-        new_loop = asyncio.new_event_loop()
-        t = threading.Thread(target=start_loop, args=(new_loop,))
-        t.start()
+    async def async_stop(self):
+        print("Stopping server and closing the client.")
+        if self.client:
+            await self.client.close()
+        self.server.close()
+        await self.server.wait_closed()
 
-        asyncio.run_coroutine_threadsafe(self.run_server(), new_loop)
-        print("=== Web socket (server) running === ")
+    def stop(self):
+        asyncio.run_coroutine_threadsafe(self.async_stop(), self.loop)
+
+# Dummy JSON data
+dummy_data = {
+    "type": "networkStatus",
+    "status": "nodeStatus",
+    "nodes": [
+        {"name": "Node-0", "status": random.choice(["normal", "error"])},
+        {"name": "Node-1", "status": random.choice(["normal", "error"])}
+    ]
+}
+
+# Create an instance of Web_Socket_Manager
+ws_manager = Web_Socket_Manager(port=7654)
+ws_manager.run()
+
+# Simulate sending data after some time
+time.sleep(4)
+ws_manager.send_to_web(dummy_data)
+
+# Automatically stop the server after some time (e.g., 10 seconds)
+time.sleep(10)
+ws_manager.stop()
