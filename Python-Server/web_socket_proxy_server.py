@@ -2,8 +2,7 @@ import asyncio
 import websockets
 import json
 import random
-import datetime
-import sys
+import time
 import threading
 from websocket_server import WebsocketServer
 import socket
@@ -12,50 +11,73 @@ class TCPServer:
     def __init__(self, host='127.0.0.1', port=8080):
         self.host = host
         self.port = port
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.bind((self.host, self.port))
-        self.server_socket.listen()
-        self.client_socket = None
-        self.client_addr = None
-        self.connection_thread = threading.Thread(target=self._accept_connection)
-        self.connection_thread.start()
-        print(f"Server listening on {self.host}:{self.port}")
+        self.client = None
+        self.server = None
+        self.loop = asyncio.new_event_loop()
+        self.server_thread = threading.Thread(target=self.start_loop, args=(self.loop,))
+        self.server_thread.start()
 
-    def _accept_connection(self):
-        self.client_socket, self.client_addr = self.server_socket.accept()
-        print('Connected by', self.client_addr)
+    def start_loop(self, loop):
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
 
-    def send_message(self, message):
-        if self.client_socket:
-            try:
-                self.client_socket.sendall(message.encode())
-                response = self.client_socket.recv(1024)
-                print('Received response:', response)
-                return response
-            except Exception as e:
-                print(f"Error sending message: {e}")
-        else:
-            print("No client connected")
+    async def register_client(self, websocket):
+        self.client = websocket
+        try:
+            await websocket.wait_closed()
+        finally:
+            self.client = None
 
-    def close(self):
-        if self.client_socket:
-            self.client_socket.close()
-        self.server_socket.close()
+    async def async_send_to_web(self, json_data):
+        print(self.client)
+        print(json_data)
+        if self.client:
+            message = json.dumps(json_data)
+            await self.client.send(message)
 
-# Example usage
-if __name__ == "__main__":
-    tcp_server = TCPServer()
+    def send_to_web(self, json_data):
+        print(" === send data right now")
+        asyncio.run_coroutine_threadsafe(self.async_send_to_web(json_data), self.loop)
 
-    while True:
-        msg = input("Enter message to send: ")
-        print("=== Sending ====== ")
-        data = {
-            "type": "networkStatus",
-            "status": "nodeStatus",
-            "nodes": [
-                {"name": "Node-0", "status": "normal"},
-                {"name": "Node-1", "status": "normal"}
-            ]
-        }
-        tcp_server.send_message(json.dump(data))
-        print("=== Sending ====== ")
+    async def start_server(self, websocket, path):
+        await self.register_client(websocket)
+
+    async def run_server(self):
+        self.server = await websockets.serve(self.start_server, self.host, self.port)
+        await self.server.wait_closed()
+
+    def run(self):
+        asyncio.run_coroutine_threadsafe(self.run_server(), self.loop)
+        print("=== Web socket (server) running ===")
+
+    async def async_stop(self):
+        print("Stopping server and closing the client.")
+        if self.client:
+            await self.client.close()
+        self.server.close()
+        await self.server.wait_closed()
+
+    def stop(self):
+        asyncio.run_coroutine_threadsafe(self.async_stop(), self.loop)
+
+# Dummy JSON data
+dummy_data = {
+    "type": "networkStatus",
+    "status": "nodeStatus",
+    "nodes": [
+        {"name": "Node-0", "status": random.choice(["normal", "error"])},
+        {"name": "Node-1", "status": random.choice(["normal", "error"])}
+    ]
+}
+
+# Create an instance of Web_Socket_Manager
+ws_manager = Web_Socket_Manager(port=7654)
+ws_manager.run()
+
+# Simulate sending data after some time
+time.sleep(4)
+ws_manager.send_to_web(dummy_data)
+
+# Automatically stop the server after some time (e.g., 10 seconds)
+time.sleep(10)
+ws_manager.stop()
