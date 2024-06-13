@@ -8,4 +8,5 @@ opcodes = {
     "ECHO":        "E".encode(),
     "ACK":         "A".encode(),
     "Test":        "T".encode(),
+    "Reset":       "S".encode(),
 }

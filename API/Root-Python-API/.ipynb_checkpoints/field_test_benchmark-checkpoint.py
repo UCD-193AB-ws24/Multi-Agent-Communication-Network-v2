@@ -437,7 +437,6 @@ def request_test(node_amount, request_name, desired_nodes):
     # test finished
     if attempts == max_attempts + 1:
         current_time = time.time()
-        time_elapsed = current_time - start_time
         print(f"'{request_name}' Request Test Succeed")
         # print the result
     else:
@@ -469,11 +468,21 @@ def data_update_test(socket_api, node_amount, data_size, edge_send_rate, desired
         # Test Body, data update will be sened
         # TB Finished when we have edge check the data been sended by request data from server
         # for 30 second
-        time.sleep(30)
+        time.sleep(20)
+        print(f"Stoping test")
         
         success = test_termination(socket_api)
         if not success:
             continue
+
+        # compute rough pkt loss
+        for node in desired_nodes:
+            success, response = send_command(socket_api, "[GET]", node, b'\x00')
+            if not success:
+                print(response)
+                continue
+
+            print(f"Node-{node}: {response}")
             
         # finished the test on current attempt
         attempts = max_attempts + 1
@@ -482,7 +491,6 @@ def data_update_test(socket_api, node_amount, data_size, edge_send_rate, desired
     # test finished
     if attempts == max_attempts + 1:
         current_time = time.time()
-        time_elapsed = current_time - start_time
         print(f"Data Request Test Finished")
         # print the result
     else:

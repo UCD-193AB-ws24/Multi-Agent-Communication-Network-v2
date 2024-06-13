@@ -295,8 +295,7 @@ class Network_Manager():
 
         for node in self.node_list:
             node_info = {"name": "", "status": ""}
-            node_info["name"] = "Node-" + node.address
-
+            node_info["name"] = "Node-" + str(node.address)
             node_info["status"] = "normal"
             if node.status != Node_Status.Active:
                 node_info["status"] = "error"
