@@ -52,7 +52,7 @@ import struct
 from socket_api import Socket_Manager  # class object
 from socket_api import craft_message_example, parseNodeAddr, encodeNodeAddr  # function
 from opcode_subscribe import subscribe, unsubscribe
-from socket_api import opcodes
+from message_opcodes import opcodes
 
 # globl variable so it can be accessed by all test and reused
 network_node_amound = 0
@@ -69,8 +69,8 @@ def field_test_broadcast_confirm_callback(message: bytes):
     node_addr = parseNodeAddr(message[0:2])
     opcode = message[2:3] # subscriped opcode["ACK"]
     
-    print("[Callback] node_addr:",node_addr, ", opcode:", opcode, ", payload:", payload)
     broadcast_confirmed_node.append(node_addr)
+    print("[Callback] node_addr:",node_addr, ", opcode:", opcode) #, ", payload:", payload)
 
 def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_parameter_bytes, node_amount, timeout, node_addrs):
     global network_node_amound, broadcast_confirmed_node, current_test

@@ -2,7 +2,7 @@ import struct
 import time
 import json
 from node import Node, Node_Status
-from socket_api import opcodes
+from message_opcodes import opcodes
 
 shared_node_list = []
 
@@ -40,10 +40,10 @@ class Network_Manager():
             # print("Net Manager still running...")
             time.sleep(1)
             
-    def attach_callback(self, socket_sent, uart_sent): #, web_socket_send_to_web):
+    def attach_callback(self, socket_sent, uart_sent, web_socket_send_to_web):
         self.socket_sent = socket_sent
         self.uart_sent = uart_sent
-        # self.web_socket_send_to_web = web_socket_send_to_web
+        self.web_socket_send_to_web = web_socket_send_to_web
 
     def getActiveNode(self):
         # TB Finish, update on node status base on timestamp
@@ -255,8 +255,8 @@ class Network_Manager():
             self.web_node_status_update()
             return b'S'
             
-        if op_code == opcodes["Root Reset"]: # Root Module restart and back online
-            return b'S'
+        # if op_code == opcodes["Root Reset"]: # Root Module restart and back online
+        #     return b'S'
             
         ############## other Opcodes pass to client-API using socket ##############
         return self.socket_sent(data)
@@ -264,7 +264,7 @@ class Network_Manager():
 
 # ============================= Web socket send Logics =================================
     def web_log(self, message):
-        if web_socket_send_to_web == None:
+        if self.web_socket_send_to_web == None:
             return
             
         data = {
@@ -283,7 +283,7 @@ class Network_Manager():
         self.web_socket_send_to_web(data)
 
     def web_node_status_update(self):
-        if web_socket_send_to_web == None:
+        if self.web_socket_send_to_web == None:
             return
             
         self.node_list
@@ -306,7 +306,7 @@ class Network_Manager():
         self.web_socket_send_to_web(data)
         
     def web_robot_status_update(self, robot_data_list):
-        if web_socket_send_to_web == None:
+        if self.web_socket_send_to_web == None:
             return
             
         # Example

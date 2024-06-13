@@ -7,7 +7,7 @@ import threading
 from websocket_server import WebsocketServer
 import socket
 
-class TCPServer:
+class Web_Socket_Manager:
     def __init__(self, host='127.0.0.1', port=8080):
         self.host = host
         self.port = port
@@ -70,14 +70,14 @@ dummy_data = {
     ]
 }
 
-# Create an instance of Web_Socket_Manager
-ws_manager = Web_Socket_Manager(port=7654)
-ws_manager.run()
+# # Create an instance of Web_Socket_Manager
+# ws_manager = Web_Socket_Manager(port=7654)
+# ws_manager.run()
 
-# Simulate sending data after some time
-time.sleep(4)
-ws_manager.send_to_web(dummy_data)
+# # Simulate sending data after some time
+# time.sleep(4)
+# ws_manager.send_to_web(dummy_data)
 
-# Automatically stop the server after some time (e.g., 10 seconds)
-time.sleep(10)
-ws_manager.stop()
+# # Automatically stop the server after some time (e.g., 10 seconds)
+# time.sleep(10)
+# ws_manager.stop()

@@ -2,7 +2,7 @@ from socket_api import Socket_Manager
 from socket_api import parseNodeAddr, craft_message_example
 from field_test_benchmark import connect_N_node, RTT_tester, data_update_test
 from opcode_subscribe import subscribe, unsubscribe, notify
-from socket_api import opcodes
+from message_opcodes import opcodes
 import time
 # self_port = 6001
 server_port = 5002
@@ -55,8 +55,8 @@ def main():
     # full_restart_root(socket_api)
     time.sleep(3)
 
-    node_amount = 2 # control how many node testing
-    desinated_node = [5, 6]
+    desinated_node = [5]
+    node_amount = len(desinated_node) # control how many node testing
 
     
     connect_N_node(socket_api, node_amount, desinated_node)
