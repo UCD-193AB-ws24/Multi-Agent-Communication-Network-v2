@@ -1,0 +1,10 @@
+{
+  "Sequence": {
+    "ID": 0,
+    "Length": 1
+  },
+  "GPS": {
+    "ID": 1,
+    "Length": 6
+  },
+}

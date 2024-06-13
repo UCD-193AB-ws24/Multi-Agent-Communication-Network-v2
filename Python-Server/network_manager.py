@@ -5,6 +5,24 @@ from node import Node, Node_Status
 
 shared_node_list = []
 
+opcodes = {
+    "Custom":      b'\x00', # will pass to app level
+    "Net Info":    b'\x01',
+    "Node Info":   b'\x02',
+    "Root Reset":  b'\x03',
+    "Data":        "D".encode(),
+}
+
+def getDataLenByID(data_id):
+    with open('Data_Info.json', 'r') as file:
+        data = json.load(file)
+        
+    for type_name, type_info in data.items():
+        if type_info["ID"] == data_id:
+            return type_info["Length"]
+    print(f"[Error] Undefined data type data_id:{data_id}")
+    return -1
+        
 class Network_Manager():
     def __init__(self):
         # Node list data struct
@@ -39,12 +57,12 @@ class Network_Manager():
         active_nodes = list(filter(lambda node: node.status == Node_Status.Active, self.node_list))
         return active_nodes
         
-    def getNodeData(self, data_type, node_addr):
+    def getNodeData(self, data_ID, node_addr):
         # <= data outgoing (single or patch)
-        # S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
+        # S|data_ID|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
         # ^ success
         # F|Error_flag/Message
-        response = b'S' + data_type.encode()
+        response = b'S' + data_ID.encode()
 
         # ============== need to be remake for correct data length ===================
         # TB Tested - need full test and review
@@ -55,7 +73,7 @@ class Network_Manager():
             data_len = 0
             # load length
             for node in active_nodes:
-                hasData, data_len = node.getDataLength(data_type)
+                hasData, data_len = node.getDataLength(data_ID)
                 if hasData:
                     response += data_len.to_bytes(1, byteorder='little')
                     break
@@ -64,7 +82,7 @@ class Network_Manager():
             size_n = 0
             total_data_bytes = b''
             for node in active_nodes:
-                hasData, data = node.getDataBytes(data_type)
+                hasData, data = node.getDataBytes(data_ID)
                 if hasData:
                     size_n += 1
                     total_data_bytes += encodeNodeAddr(node.address)
@@ -84,7 +102,7 @@ class Network_Manager():
             
             response += b'\x01' # size_n = 1 only one node
             node = node_list[0]
-            hasData, data = node.getDataBytes(data_type)
+            hasData, data = node.getDataBytes(data_ID)
             if not hasData:
                 error = "Data Type Not Found"
                 response = b'F' + len(error).to_bytes(1, byteorder='little') + error.encode()
@@ -106,27 +124,26 @@ class Network_Manager():
 
         node.status = Node_Status.Active
         
-        #   size_n|data_type|data_length_byte|data|...|data_type|data_length_byte|data
-        #    1   |   3     |     1          | n| ... (size of each segment in bytes)
+        #   size_n|data_ID|data| ... |data_ID_n|data_n|
+        #    1   |    1   |  n | ...
         size = msg_payload[0]
         
+        data_id_len = 1
         data_start = 1
         for n in range(size):
-            data_type = msg_payload[data_start : data_start+3]
-            data_len = msg_payload[data_start+3]
+            data_ID = msg_payload[data_start : data_start+data_id_len]
+            data_len = getDataLenByID(data_ID)
+            if data_len == -1:
+                print(f"Error updating node:{node_addr} payload'{msg_payload}'")
+                return
             
-            # print(f"data_type:{data_type}, data_len:{data_len}") # [Testing Log]
+            # print(f"data_ID:{data_ID},data_Name:{data_ID}, data_len:{data_len}") # [Testing Log]
             
-            try:
-                data_type = data_type.decode('utf-8') # use string name if is a string name
-            except:
-                pass
-            
-            data = msg_payload[data_start+4: data_start+4+data_len]
+            data = msg_payload[data_start + data_id_len: data_start + data_id_len + data_len]
         
-            node.storeData(data_type, data)
-            # print(f"[Node] addr-{node_addr} added {data_type} data") # [Testing Log] 
-            data_start += 4 +  data_len
+            node.storeData(data_ID, data)
+            # print(f"[Node] addr-{node_addr} added {data_ID} data") # [Testing Log] 
+            data_start += data_id_len +  data_len
         
         print("done updating node:", node_addr)
             
@@ -143,11 +160,11 @@ class Network_Manager():
         
          ############## Command get handled in Server ##############
         if command == "[GET]": # Get data
-            # [GET]|data_type|node_addr/index
+            # [GET]|data_ID|node_addr/index
             # node_addr = socket.ntohs(payload[0:2]) # int.from_bytes(payload[3], byteorder='little')
             node_addr = parseNodeAddr(payload[0:2]) # unpack 2 byte and converts them from network byte order to host byte order
-            data_type = payload[2:5].decode('utf-8')
-            return self.getNodeData(data_type, node_addr)
+            data_ID = payload[2:5].decode('utf-8')
+            return self.getNodeData(data_ID, node_addr)
         
         if command == "ACT-C": # Count active node
             target_status = Node_Status.Active
@@ -210,29 +227,28 @@ class Network_Manager():
     def callback_uart(self, data):
         print(f"\n[UART-CB]:  {data}") # [Testing Log]
         node_addr_bytes = data[0:2]
-        op_code = data[2:5]
-        payload = data[5:]
+        op_code = data[2:3]
+        payload = data[3:]
         
         node_addr = parseNodeAddr(node_addr_bytes) # unpack 2 byte and converts them from network byte order to host byte order
-        try:
-            op_code = op_code.decode('utf-8')
-        except:
-            print("[Uart] can't parse opcode", op_code)
-            return b'F'
         
+# opcodes = {
+#     "Custom":      b'\x00', # will pass to app level
+#     "Net Info":    b'\x01',
+#     "Node Info":   b'\x02',
+#     "Root Reset":  b'\x03',
+#     "Data":        "D".encode(),
+# }
         ############## Opcodes only updates python server ############## 
-        if op_code == "[D]": # Data update
+        if op_code == opcodes["Data"]: # Data update
             self.updateNodeData(node_addr, payload)
             self.web_log(f"[D] recived update from Node-{node_addr}")
             return b'S'
             
-        if op_code == "NET": # Network Information
+        if op_code == opcodes["Net Info"]: # Network Information
             return b'S'
             
-        if op_code == "RST": # Root Module restart and back online
-            return b'S'
-            
-        if op_code == "NOD": # Node Connected (become avaiable) Update
+        if op_code == opcodes["Node Info"]: # Node Connected (become avaiable) Update
             node_uuid = payload
             node_list = list(filter(lambda node: node.address == node_addr, self.node_list))
             if len(node_list) <= 0:
@@ -244,6 +260,9 @@ class Network_Manager():
             print(f"Node-{node_addr} connected")
             self.web_log(f"Node-{node_addr} connected")
             self.web_node_status_update()
+            return b'S'
+            
+        if op_code == opcodes["Root Reset"]: # Root Module restart and back online
             return b'S'
             
         ############## other Opcodes pass to client-API using socket ##############
