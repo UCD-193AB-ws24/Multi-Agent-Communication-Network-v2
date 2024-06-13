@@ -67,25 +67,25 @@ def field_test_broadcast_confirm_callback(message: bytes):
     global broadcast_confirmed_node, current_test
     node_addr = parseNodeAddr(message[0:2])
     opcode = message[2:5] # subscriped opcode 'CPY'
-    payload = message[5:]
+    # payload = message[5:]
     
-    try:
-        payload = payload.decode('utf-8')
-    except:
-        print(f"failed to decode payload {payload}")
-        return
+    # try:
+    #     payload = payload.decode('utf-8')
+    # except:
+    #     print(f"failed to decode payload {payload}")
+    #     return
         
-    print("[Callback] node_addr:",node_addr, ", opcode:", opcode.decode('utf-8'), ", payload:", payload)
+    print("[Callback] node_addr:",node_addr, ", opcode:", opcode.decode('utf-8'))#, ", payload:", payload)
     
-    if payload[0] != "I":
-        print(f"wrong copy message, not 'I' - test initialization")
-        return
+    # if payload[0] != "I":
+    #     print(f"wrong copy message, not 'I' - test initialization")
+    #     return
         
-    test_name = payload[1:]
-    print(f"test_name: '{test_name}', current_test: '{current_test}'")
+    # test_name = payload[1:]
+    # print(f"test_name: '{test_name}', current_test: '{current_test}'")
     broadcast_confirmed_node.append(node_addr)
 
-def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_parameter_bytes, node_amount, timeout, node_addr):
+def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_parameter_bytes, node_amount, timeout, node_addrs):
     global network_node_amound, broadcast_confirmed_node, current_test
     broadcast_confirmed_node = []
     current_test = test_name
@@ -107,14 +107,9 @@ def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_pa
     #     send_command(socket_api, "SEND-", selected_addr, message_bytes)
     #     time.sleep(2)
 
-    if node_amount != 1:
-        for i in range(10):
-            test_addr = 5 + i
-            send_command(socket_api, "SEND-", test_addr, message_bytes)
-            time.sleep(1)
-    else:
-        send_command(socket_api, "SEND-", node_addr, message_bytes)
-        
+    for test_addr in node_addrs:
+        send_command(socket_api, "SEND-", test_addr, message_bytes)
+        time.sleep(1)
         
     # timeout
     start_time = time.time()
@@ -151,11 +146,11 @@ def send_command(socket_api, command: str, node_addr: int, payload: bytes) -> tu
     response = response[1:]
     return (True, response)
 
-def test_initialization(socket_api, test_name, test_parameter_bytes, node_amount, broadcast_timeout, node_addr):
+def test_initialization(socket_api, test_name, test_parameter_bytes, node_amount, broadcast_timeout, node_addrs):
     broadcast_timeout = 120
     # broadcast 'TST|I|test_name' (test init) to initilize test on edge device
     global broadcast_confirmed_node
-    success = broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_parameter_bytes, node_amount, broadcast_timeout, node_addr)
+    success = broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_parameter_bytes, node_amount, broadcast_timeout, node_addrs)
     if not success:
         return False
     print(f" - Initialized Test on edge")
@@ -166,6 +161,7 @@ def test_initialization(socket_api, test_name, test_parameter_bytes, node_amount
             success, _ = send_command(socket_api, "SEND-", confirmed_node_addr, "TSTS".encode())
             if not success:
                 return False
+            time.sleep(0.5)
     else:
         success, _ = send_command(socket_api, "BCAST", 0, "TSTS".encode())
         if not success:
@@ -227,12 +223,12 @@ def connect_N_node(socket_api, node_amount, desinated_node):
     max_attempts = 3
     broadcast_timeout = 10
     conenct_node_timeout = 120
-    node_addr = 0
+    # node_addr = 0
     test_name = "TEST0" # to be renamed ------------------------------------------------------------------
     test_parameter_byte = b''
 
-    if node_amount == 1:
-        node_addr = desinated_node
+    # if node_amount == 1:
+    #     node_addr = desinated_node[0]
     
     # subscribe("[NET]", test_0_network_status_callback)
     # ----------- Test 0 -----------
@@ -240,17 +236,17 @@ def connect_N_node(socket_api, node_amount, desinated_node):
         attempts += 1
         print(f"\n===== Starting test-0 with attempt-{attempts}/{max_attempts} ===== ")
 
-        if node_amount == 1 and node_addr == 0:
-            # get a list of n nodes
-            node_addr_list, error_msg = get_N_Nodes(socket_api, node_amount)
-            if node_addr_list == None:
-                print(error_msg)
-                time.sleep(5) # allow some time for node to connect
-                continue
-            node_addr = node_addr_list[0]
+        # if node_amount == 1 and node_addr == 0:
+        #     # get a list of n nodes
+        #     node_addr_list, error_msg = get_N_Nodes(socket_api, node_amount)
+        #     if node_addr_list == None:
+        #         print(error_msg)
+        #         time.sleep(5) # allow some time for node to connect
+        #         continue
+        #     node_addr = node_addr_list[0]
         
         # broadcast to initialize and start test on edge
-        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, node_addr)
+        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, desinated_node)
         if not success:
             continue
         
@@ -329,12 +325,9 @@ def RTT_tester(socket_api, node_amount, data_size, send_rate, duration, desired_
     max_attempts = 3
     broadcast_timeout = 20
     conenct_node_timeout = 20
-    node_addr = 0
     test_name = "RTT--" # to be renamed ------------------------------------------------------------------
     test_parameter_byte = b''
     
-    if node_amount == 1:
-        node_addr = desired_node
     # ----------- Test -----------
     while attempts < max_attempts:
         attempts += 1
@@ -377,13 +370,9 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
     #initialize recorders
     ping_start_time_list = {}
     ping_dict = {}
-    if node_amount == 1:
-        ping_dict[desired_node_addr] = []
-        ping_start_time_list[desired_node_addr] = []
-    else:
-        for i in range(node_amount):
-            ping_dict[broadcast_confirmed_node[i]] = [] # list of (pkt_number, end_time)  
-            ping_start_time_list[broadcast_confirmed_node[i]] = [] # list of (pkt_number, end_time)  
+    for i in range(node_amount):
+        ping_dict[broadcast_confirmed_node[i]] = [] # list of (pkt_number, end_time)  
+        ping_start_time_list[broadcast_confirmed_node[i]] = [] # list of (pkt_number, end_time)  
 
     #  ------------ callback function ------------
     def ping_N_node_callback(message: bytes):
@@ -427,17 +416,12 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
         pkt_number_bytes = encodeNodeAddr(pkt_number)
         ping_message_bytes = "ECH".encode() + pkt_number_bytes + pkt_payload_bytes
 
-        if node_amount == 1:
-            success, error_msg = send_command(socket_api, "SEND-", desired_node_addr, ping_message_bytes)
-            ping_start_time_list[desired_node_addr].append(time.time()) 
-            time.sleep(send_interval)
-        else:
-            ping_interval = send_interval / node_amount
-            for i in range(node_amount):
-                current_ping_node = broadcast_confirmed_node[i]
-                success, error_msg = send_command(socket_api, "SEND-", current_ping_node, ping_message_bytes)
-                ping_start_time_list[current_ping_node].append(time.time()) 
-                time.sleep(ping_interval)
+        ping_interval = send_interval / node_amount
+        for i in range(node_amount):
+            current_ping_node = broadcast_confirmed_node[i]
+            success, error_msg = send_command(socket_api, "SEND-", current_ping_node, ping_message_bytes)
+            ping_start_time_list[current_ping_node].append(time.time()) 
+            time.sleep(ping_interval)
         
         pkt_number += 1
     
@@ -480,7 +464,7 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
 
 
 # ====================== Not tested nor implmented in edgde device ======================
-def request_test(node_amount, request_name):
+def request_test(node_amount, request_name, desired_nodes):
     # measure RTT and Pkt loss for sending
     # ping <node_amount> node, <data_size> bytes paket on <send_rate> over <time> second
     
@@ -488,24 +472,24 @@ def request_test(node_amount, request_name):
     attempts = 0
     max_attempts = 3
     broadcast_timeout = 10
-    node_addr = 0
+    # node_addr = 0
     test_name = "TESTR" # to be renamed ------------------------------------------------------------------
     test_parameter_byte = b''
     
-    if node_amount == 1:
-        # get a list of n nodes
-        node_addr_list, error_msg = get_N_Nodes(node_amount)
-        if node_addr_list == None:
-            print(error_msg)
-            return
-        node_addr = node_addr_list[0]
+    # if node_amount == 1:
+    #     # get a list of n nodes
+    #     node_addr_list, error_msg = get_N_Nodes(node_amount)
+    #     if node_addr_list == None:
+    #         print(error_msg)
+    #         return
+    #     node_addr = node_addr_list[0]
         
     while attempts < max_attempts:
         attempts += 1
         print(f"\n===== Starting '{request_name}' request_test on {node_amount} nodes with attempt-{attempts}/{max_attempts} ===== ")
         
         # Test Initialization
-        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, node_addr)
+        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, desired_nodes)
         if not success:
             continue
         print(f"Edge will now send '{request_name}' request")
@@ -534,30 +518,30 @@ def request_test(node_amount, request_name):
 
   
 # data_update_test on n_node
-def data_update_test(socket_api, node_amount, data_size, edge_send_rate):
+def data_update_test(socket_api, node_amount, data_size, edge_send_rate, desired_nodes):
     global network_node_amound, broadcast_confirmed_node
     attempts = 0
     max_attempts = 3
     broadcast_timeout = 10
-    node_addr = 0
+    # node_addr = 0
     test_name = "DATA-" # to be renamed ------------------------------------------------------------------
     # 2 byte data size, 1 byte send rate
     test_parameter_byte = b'' + struct.pack('!H', data_size) + struct.pack('b', edge_send_rate % 255)
     
-    if node_amount == 1:
-        # get a list of n nodes
-        node_addr_list, error_msg = get_N_Nodes(node_amount)
-        if node_addr_list == None:
-            print(error_msg)
-            return
-        node_addr = node_addr_list[0]
+    # if node_amount == 1:
+    #     # get a list of n nodes
+    #     node_addr_list, error_msg = get_N_Nodes(node_amount)
+    #     if node_addr_list == None:
+    #         print(error_msg)
+    #         return
+    #     node_addr = node_addr_list[0]
         
     while attempts < max_attempts:
         attempts += 1
         print(f"\n===== Starting data_update_test ({data_size} bytes, {edge_send_rate} Hz) on {node_amount} nodes with attempt-{attempts}/{max_attempts} ===== ")
         
         # Test Initialization
-        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, node_addr)
+        success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, desired_nodes)
         if not success:
             continue
         print(f"Edge will now send {data_size} bytes data update on {edge_send_rate} Hz")

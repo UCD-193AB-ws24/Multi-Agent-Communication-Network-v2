@@ -4,7 +4,7 @@ from field_test_benchmark import connect_N_node, RTT_tester, data_update_test
 from opcode_subscribe import subscribe, unsubscribe, notify
 import time
 # self_port = 6001
-server_port = 5001
+server_port = 5002
 server_ip = "localhost"
 
     
@@ -61,8 +61,9 @@ def main():
     time.sleep(3)
 
     node_amount = 2 # control how many node testing
-    desinated_node = 0
+    desinated_node = [5, 6]
 
+    
     connect_N_node(socket_api, node_amount, desinated_node)
     
     # RTT_test_parameters = [] # (data_size, send_rate Hz, duration)
@@ -77,7 +78,7 @@ def main():
     #         RTT_tester(socket_api, node_amount, data_size, send_rate, duration, desinated_node)
 
     
-    data_update_test(socket_api, node_amount, 20, 1)
+    data_update_test(socket_api, node_amount, 20, 1, desinated_node)
     # connect_N_node(socket_api, node_amount)
     
     print("All Test Finished, running [GET] Command")

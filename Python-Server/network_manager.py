@@ -29,10 +29,10 @@ class Network_Manager():
             # print("Net Manager still running...")
             time.sleep(1)
             
-    def attach_callback(self, socket_sent, uart_sent,  web_socket_send_to_web):
+    def attach_callback(self, socket_sent, uart_sent): #, web_socket_send_to_web):
         self.socket_sent = socket_sent
         self.uart_sent = uart_sent
-        self.web_socket_send_to_web = web_socket_send_to_web
+        # self.web_socket_send_to_web = web_socket_send_to_web
 
     def getActiveNode(self):
         # TB Finish, update on node status base on timestamp
@@ -252,6 +252,9 @@ class Network_Manager():
 
 # ============================= Web socket send Logics =================================
     def web_log(self, message):
+        if web_socket_send_to_web == None:
+            return
+            
         data = {
             "type": "trafficLog",
             "message": message
@@ -268,6 +271,9 @@ class Network_Manager():
         self.web_socket_send_to_web(data)
 
     def web_node_status_update(self):
+        if web_socket_send_to_web == None:
+            return
+            
         self.node_list
         data = {
             "type": "networkStatus",
@@ -288,6 +294,9 @@ class Network_Manager():
         self.web_socket_send_to_web(data)
         
     def web_robot_status_update(self, robot_data_list):
+        if web_socket_send_to_web == None:
+            return
+            
         # Example
         # "robots": [
         #     { "id": 1, "name": "Robot Node 1", "state": "Active", "node": 'Node-0' },

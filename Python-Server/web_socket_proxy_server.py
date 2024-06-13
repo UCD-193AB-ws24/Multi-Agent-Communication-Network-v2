@@ -5,54 +5,57 @@ import random
 import datetime
 import sys
 import threading
+from websocket_server import WebsocketServer
+import socket
 
-class Web_Socket_Manager:
-    def __init__(self, host='localhost', port=12345):
+class TCPServer:
+    def __init__(self, host='127.0.0.1', port=8080):
         self.host = host
         self.port = port
-        self.connected_clients = set()
-        self.server = None
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((self.host, self.port))
+        self.server_socket.listen()
+        self.client_socket = None
+        self.client_addr = None
+        self.connection_thread = threading.Thread(target=self._accept_connection)
+        self.connection_thread.start()
+        print(f"Server listening on {self.host}:{self.port}")
 
-    async def register_client(self, websocket):
-        self.connected_clients.add(websocket)
-        print("=== register_client === ")
-        try:
-            await websocket.wait_closed()
-        finally:
-            self.connected_clients.remove(websocket)
-        print("=== done register_client === ")
+    def _accept_connection(self):
+        self.client_socket, self.client_addr = self.server_socket.accept()
+        print('Connected by', self.client_addr)
 
-    async def async_send_to_web(self, json_data):
-        print("=== Sending 3 === ")
-        if self.connected_clients:  # Ensure there are connected clients
-            print("=== Sending  3-- === ")
-            message = json.dumps(json_data)
-            await asyncio.wait([client.send(message) for client in self.connected_clients])
+    def send_message(self, message):
+        if self.client_socket:
+            try:
+                self.client_socket.sendall(message.encode())
+                response = self.client_socket.recv(1024)
+                print('Received response:', response)
+                return response
+            except Exception as e:
+                print(f"Error sending message: {e}")
+        else:
+            print("No client connected")
 
-    def send_to_web(self, json_data):
-        print("=== Sending 1 === ")
-        loop = asyncio.get_event_loop()
-        print("=== Sending 2 === ")
-        loop.run_until_complete(self.async_send_to_web(json_data))
-        print("=== Sending 4 === ")
-        
-    async def start_server(self, websocket, path):
-        await self.register_client(websocket)
+    def close(self):
+        if self.client_socket:
+            self.client_socket.close()
+        self.server_socket.close()
 
-    async def run_server(self):
-        self.server = await websockets.serve(self.start_server, self.host, self.port)
-        await self.server.wait_closed()
+# Example usage
+if __name__ == "__main__":
+    tcp_server = TCPServer()
 
-    def run(self):
-        # Start the WebSocket server
-        
-        def start_loop(loop):
-            asyncio.set_event_loop(loop)
-            loop.run_forever()
-
-        new_loop = asyncio.new_event_loop()
-        t = threading.Thread(target=start_loop, args=(new_loop,))
-        t.start()
-
-        asyncio.run_coroutine_threadsafe(self.run_server(), new_loop)
-        print("=== Web socket (server) running === ")
+    while True:
+        msg = input("Enter message to send: ")
+        print("=== Sending ====== ")
+        data = {
+            "type": "networkStatus",
+            "status": "nodeStatus",
+            "nodes": [
+                {"name": "Node-0", "status": "normal"},
+                {"name": "Node-1", "status": "normal"}
+            ]
+        }
+        tcp_server.send_message(json.dump(data))
+        print("=== Sending ====== ")
