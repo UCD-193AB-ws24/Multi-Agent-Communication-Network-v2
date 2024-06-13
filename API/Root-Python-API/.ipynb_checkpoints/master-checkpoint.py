@@ -2,6 +2,7 @@ from socket_api import Socket_Manager
 from socket_api import parseNodeAddr, craft_message_example
 from field_test_benchmark import connect_N_node, RTT_tester, data_update_test
 from opcode_subscribe import subscribe, unsubscribe, notify
+from socket_api import opcodes
 import time
 # self_port = 6001
 server_port = 5002
@@ -17,16 +18,10 @@ def socket_message_callback_example(message_data: bytes):
     # print(f"Received message: {message_data}")
     
     node_addr_bytes = message_data[0:2]
-    opcode_bytes = message_data[2:5]
-    payload_bytes = message_data[5:]
+    opcode = message_data[2:3]
+    payload_bytes = message_data[3:]
     
     node_addr = parseNodeAddr(node_addr_bytes)
-    opcode = "---"
-    try:
-        opcode = opcode_bytes.decode('utf-8')
-    except:
-        print("Can't parse opcode", opcode)
-        return
 
     # print("node_addr:",node_addr, ", opcode:", opcode, ", payload:", payload_bytes)
 
@@ -34,7 +29,7 @@ def socket_message_callback_example(message_data: bytes):
     # notify subscribers
     notify(opcode, message_data)
     # handler socket message
-    if opcode == "[REQ]":
+    if opcode == opcodes["Request"]:
         # request from edge
         pass
 

@@ -5,8 +5,20 @@ import struct
 import signal
 from datetime import datetime
 
+opcodes = {
+    "Custom":      b'\x00', # will pass to app level
+    "Net Info":    b'\x01',
+    "Node Info":   b'\x02',
+    "Root Reset":  b'\x03',
+    "Data":        "D".encode(),
+    "Request":     "R".encode(),
+    "ECHO":        "E".encode(),
+    "ACK":         "A".encode(),
+    "Test":        "T".encode(),
+}
+
 # define constents
-# SOCKET_OPCODE_LEN = 5     # can be veried base on need # TB Fix
+# NETWORK_COMMAND_LEN = 5     # can be veried base on need # TB Fix
 SOCKET_NODE_ADDR_LEN = 2  # need to be 2
 BLE_MESH_BROADCAST_ADDR = 255
 socket_op_amount = 2
@@ -16,10 +28,6 @@ host = 'localhost'
 # example
 # node_addr = struct.unpack('!H', node_addr)[0] # unpack 2 byte and converts them from network byte order to host byte order
 # binary_data = struct.pack('!H', node_addr) # pack it back
-# SOCKET_OPCODE = [ # TB Fix
-#     "[REQ]",
-#     "EMPTY"
-# ] 
 
 class Socket_Manager():
     def __init__(self, server_addr, client_socket_callback):
@@ -126,12 +134,6 @@ def craft_message_example(command:str, node_addr: int, msg_payload: bytes) -> by
     return message
    
 # other utility function provide by our API
-
-# def getOpCodeNum(opcode):
-#     for i in range(socket_op_amount):
-#         if opcode == SOCKET_OPCODE[i]:
-#             return i
-#     return -1
 
 def encodeNodeAddr(node_addr: int) -> bytes:
     return struct.pack('!H', node_addr) # encoded from host to network endianess (byte order)

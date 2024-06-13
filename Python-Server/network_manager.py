@@ -2,16 +2,9 @@ import struct
 import time
 import json
 from node import Node, Node_Status
+from socket_api import opcodes
 
 shared_node_list = []
-
-opcodes = {
-    "Custom":      b'\x00', # will pass to app level
-    "Net Info":    b'\x01',
-    "Node Info":   b'\x02',
-    "Root Reset":  b'\x03',
-    "Data":        "D".encode(),
-}
 
 def getDataLenByID(data_id):
     with open('Data_Info.json', 'r') as file:
