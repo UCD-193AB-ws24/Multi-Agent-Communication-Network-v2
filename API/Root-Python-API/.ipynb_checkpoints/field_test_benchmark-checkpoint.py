@@ -398,8 +398,6 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
 
 
 
-
-
 # ====================== Not tested nor implmented in edgde device ======================
 def request_test(node_amount, request_name, desired_nodes):
     # measure RTT and Pkt loss for sending
@@ -410,7 +408,7 @@ def request_test(node_amount, request_name, desired_nodes):
     max_attempts = 3
     broadcast_timeout = 10
     # node_addr = 0
-    test_name = "TESTR" # to be renamed ------------------------------------------------------------------
+    test_name = "R" # to be renamed ------------------------------------------------------------------
     test_parameter_byte = b''
     
         
@@ -445,8 +443,7 @@ def request_test(node_amount, request_name, desired_nodes):
     else:
         print(f"'{request_name}' Request Test Failed")
     # ----------- request_test -----------
-
-  
+    
 # data_update_test on n_node
 def data_update_test(socket_api, node_amount, data_size, edge_send_rate, desired_nodes):
     global network_node_amound, broadcast_confirmed_node
@@ -454,7 +451,7 @@ def data_update_test(socket_api, node_amount, data_size, edge_send_rate, desired
     max_attempts = 3
     broadcast_timeout = 10
     # node_addr = 0
-    test_name = "DATA-" # to be renamed ------------------------------------------------------------------
+    test_name = "D" # to be renamed ------------------------------------------------------------------
     # 2 byte data size, 1 byte send rate
     test_parameter_byte = b'' + struct.pack('!H', data_size) + struct.pack('b', edge_send_rate % 255)
     
