@@ -26,17 +26,25 @@ As you can see from the picture, we have four main components:
 Below is a detailed description of each component:
 
 ### 1. Python Server
-Description of what the Python Server does, its responsibilities, technologies used, etc.
+Description of what the Python Server does, its responsibilities, technologies used, etc. ***[Honghui or Yudi, please fill this. just a brief description]***
 
 ### 2. ESP32 Root
-Description of the ESP32 Root, its role in the project, functionalities, etc.
+Our ESP32 Root, also called ESP32 Client served as our central network. [not sure if we want to mention if it's a custom PCB] It is responsible for managing and coordinating the edge devices and also ensuring efficient communication and data processing. The ESP32 Root is equipped with WiFi and Bluetooth, but we're focusing more on the BLE Mesh Features. Features that are included are as follows:
+- Acts as a `main provisioner` for our mesh topology network
+- Manage and handle communication between edge devices (data aggregation)
+- Ability to do `Remote Provision` (provision nodes outside the range of the root)
+- Can act as Non-Volatile or Volatile (Persistent or Non-Persistent Memory)
+- [not sure how to explain but `opcode` and UART communication should be mentioned here]
 
 ### 3. ESP32 Edge
-Description of the ESP32 Edge, its purpose, how it communicates with other components, etc.
+Our ESP32 Edge, also known as the ESP32 Server, serves as an edge node within the network. It is responsible for gathering data from its respective environment and handling tasks either independently or as directed by the Root. The ESP32 Edge is equipped with WiFi and Bluetooth, but we are focusing more on its BLE Mesh features. The features included are as follows:
+- Send a heartbeat message to root every minute
+- Store node information and external data, and send it to the Rasberry Pi
+- Have the ability to handle everything without Raspberry Pi
+- [Not sure what to put else]
 
 ### 4. Raspberry Pi
 Description of the Raspberry Pi, its functions, tasks it performs, etc.
-
 
 ## Getting Started
 General setup and installation instructions.
