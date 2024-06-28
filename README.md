@@ -51,8 +51,8 @@ General setup and installation instructions.
 
 ## Readme Documentation
 - [Python Server](./docs/python-server.md)
-- [ESP32 BLE Mesh Root Custom Model](./docs/esp32-custom-edge.md)
-- [ESP32 BLE Mesh Edge Custom Model](./docs/esp32-custom-root.md)
+- [ESP Custom Root](https://github.com/codecultivatorscrew/esp_custom_root)
+- [ESP32 BLE Mesh Edge Custom Model](https://github.com/codecultivatorscrew/esp_custom_edge)
 - [Additional Components](./docs/additional-components.md)
 
 ## Acknowledgements
