@@ -12,7 +12,6 @@ server_ip = "localhost"
 def edge_robot_request_handler_example(node_addr):
     pass
 
-
 def socket_message_callback_example(message_data: bytes):
     # print("[Socket]", end="=>")
     # print(f"Received message: {message_data}")
@@ -25,7 +24,6 @@ def socket_message_callback_example(message_data: bytes):
 
     # print("node_addr:",node_addr, ", opcode:", opcode, ", payload:", payload_bytes)
 
-        
     # notify subscribers
     notify(opcode, message_data)
     # handler socket message
@@ -33,20 +31,12 @@ def socket_message_callback_example(message_data: bytes):
         # request from edge
         pass
 
-
 def data_request_example(socket_manager, node_addr, data_type):
     message = craft_message_example( "[GET]", node_addr, data_type.encode())
     response = socket_manager.socket_sent(message)
     if response[0:1] == b'F':
         print("Failed to get data")
         return
-
-# def full_restart_root(socket_manager):
-#     message = craft_message_example( "RST-R", 0, b'')
-#     response = socket_manager.socket_sent(message)
-#     if response[0:1] == b'F':
-#         print("Failed to get data")
-#         return
 
 def main():
     server_addr = (server_ip, server_port)
@@ -58,10 +48,11 @@ def main():
     desinated_node = [5, 6] #, 7, 8, 9]
     node_amount = len(desinated_node) # control how many node testing
 
+    # 1) Data Update Tester
     data_update_test(socket_api, node_amount, 20, 1, desinated_node)
     
-    connect_N_node(socket_api, node_amount, desinated_node)
     
+    # 2) Round Trip Time Tester
     RTT_test_parameters = [] # (data_size, send_rate Hz, duration)
     RTT_test_parameters.append((10, 0.5, 10))
     # RTT_test_parameters.append((20, 0.5, 10))
@@ -73,14 +64,13 @@ def main():
         RTT_tester(socket_api, node_amount, data_size, send_rate, duration, desinated_node)
 
     
-    data_update_test(socket_api, node_amount, 20, 1, desinated_node)
-    # connect_N_node(socket_api, node_amount)
+    # 3) Reconnection time Tester
+    # connect_N_node(socket_api, node_amount, desinated_node)
     
-    print("All Test Finished, running [GET] Command")
-    print("Programe still running...")
+    print("All Tester Finished, running [GET] Command...")
     time.sleep(10)
     while True:
-        # print("Programe still running...")
+        print(" - [GET] Command sended")
         data_request_example(socket_api, 5, "GPS")
         time.sleep(10)
 

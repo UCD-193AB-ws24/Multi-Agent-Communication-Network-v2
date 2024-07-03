@@ -15,20 +15,19 @@ class Socket_Manager():
         self.send_address = None
         self.callback_func = None
         self.is_connected = False
-        signal.signal(signal.SIGINT, self.handler)
         self.initialize_socket()
-    
+        signal.signal(signal.SIGINT, self.SIGINT_handler)
+
+    def SIGINT_handler(self, signum, frame):
+        self.send_socket.close()
+        self.server_socket.close()
+        exit(0)
+        
     def initialize_socket(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(('localhost', self.server_listen_port))
         self.server_socket.settimeout(None)  # accept_connectiondont timeout when waiting for response
 
-    def handler(self, signum, frame):
-        self.send_socket.close()
-        self.server_socket.close()
-        exit(0)
-        
-    
     def run(self):
         print("Starting socket thread")
         self.socket_thread = threading.Thread(target=self.server_listening_thread, args=(), daemon=True)
@@ -47,7 +46,6 @@ class Socket_Manager():
         print("connection: " + str(self.is_connected))
         while (self.is_connected == False):
             send_socket, send_address = self.server_socket.accept()
-            print("here")
             data = send_socket.recv(self.PACKET_SIZE)
             print("data: ", data)
             if data != b'[syn]\x00':
@@ -62,7 +60,7 @@ class Socket_Manager():
         self.send_address = send_address
         print(f"Connected with send:{send_address}")
 
-    
+        
     def server_listening_thread(self):
         print("=== Enter socket (server) listening thread === ")
         # connect send_socket
@@ -75,11 +73,11 @@ class Socket_Manager():
             while True:
                 #------TB Review : reconnection----------------
                 if(self.is_connected == False):
-                    print("---------------------------reconnecting------------------------------")
+                    print(" - Reconnecting...")
                     self.connect_send_socket()
                 #----------------------------------------------
                 client_socket, address = self.server_socket.accept()
-                # print(f" - Request connection from C-API in {address} has been established.") # [Testing Log]
+                print(f" - Requested connection from C-API in {address} has been established.") # [Testing Log]
                 
                 request_handler_thread = threading.Thread(target=self.socket_handler, args=(client_socket,))
                 request_handler_thread.start()
@@ -110,7 +108,6 @@ class Socket_Manager():
 
         # pass data to Net_Manager's function to handler and return the response
         response_bytes = self.callback_func(data)
-        
         client_socket.send(response_bytes)
         client_socket.close()
     

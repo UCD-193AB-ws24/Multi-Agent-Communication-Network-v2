@@ -35,23 +35,10 @@ def main():
     uart_manager.attach_callback(net_manager.callback_uart)
     net_manager.attach_callback(socket_manager.send_data, uart_manager.sent_data, web_manager.send_to_web)
     
-    # Initialize uart_thread
+    # Start all parts
     uart_manager.run()
     socket_manager.run()
     web_manager.run()
-
-    print("=== Sending ====== ")
-    data = {
-        "type": "networkStatus",
-        "status": "nodeStatus",
-        "nodes": [
-            {"name": "Node-0", "status": "normal"},
-            {"name": "Node-1", "status": "normal"}
-        ]
-    }
-    web_manager.send_to_web(data)
-    print("=== Sending ====== ")
-    
     net_manager.run_on_current_thread()
 
 if __name__ == "__main__":
