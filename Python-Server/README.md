@@ -1,3 +1,54 @@
+# Python Server / client API
+===================================
+## Table of Contents
+
+## Overview
+
+## Python Server Overview
+
+The python server act as a gatewall to relay the message exterior to the network module into the module. It ensures asynchronous communication can be maintain with multiple threads running. The server also implements the reconnection logic and the caches data from edge nodes for quicker access when data are request by the client API. 
+
+
+[insert picture here]
+##  Python Server Files
+
+# Python_Server.py
+Setup an instance of three class with the correct callback function then launches the socket communication thread and the Uart communication thread
+
+# socket_manager.py
+Contans the socket manager class that initialize the socket, it accept an callback function during initialization and that callback function will be called when the Socket Manager receive a new message. In our use case this callback function is a function in the Netowrk_Manager class to pass onto the Network Manager . It also contains a function that will be callbacked by the Network_manager when the Network Manager need to pass on the message.
+
+# uart_manager.py
+Contains the UART manager class. The initialization of the class accept an callback call that will be called when a message is received through the UART serial port handles the connections from the root. The class also defines a callback function that will be used by the network manager when a message need to be send to root. It also handles the decoding and encoding logic of the UART message.  
+
+# network_manager.py 
+Contains a network manager class that will be launched, the network manager will be mainly used as a switch that process and relay the message from UART manager to Socket Manager or vice versa. This is done through the callback function from UART manager and Socket Manager that's passed in the network manager have the following feature
+* Getting a list of active nodes
+* Getting the data of a node with specified id and node address
+* Update the node data of a existing node
+* Handles inbound command from API  to the network where it can choose relay the message onto the root node or process it locally. 
+* Handles the outbound communication from  to the network where it can choos
+* Supporting webscoket extennsion for further extension such as monitoring
+
+# node.py
+Contain class that defines node with the following feature:
+* Each data store all it's history infomation in a queue with timestamp
+* Supports multiple data types being stored at the same time
+* Supports inforomation lookup and update on specific data type
+
+
+# message_opcodes.py
+Contains a structure for current opcodes that can be easily add on
+
+# web_socket_proxy_server.py
+[need help]
+
+## Client API Overview
+
+## Client API Files
+
+## Protocol
+[I will rephrase it later]
 ``` python
 # Design Note
 # Project Configs
@@ -80,3 +131,5 @@
 #
 #
 ```
+
+## Referneces

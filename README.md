@@ -26,6 +26,12 @@ As you can see from the picture, we have four main components:
 Below is a detailed description of each component:
 
 ### 1. Python Server
+Our Python server serves contains abstracted network management logics and caches edge node data in the server for quicker access by the client. The existence of the python server allows edge node to constainly update the information whenever the data update is available, which makes disconnection detection easier to manage. It's also responsible for failsafe of the connectbility, so a failure within the network module doesn't crash client's entire program. Features that are included are as follows:
+- Three different thread handling communication with the client and the root edge node asynchrounously.
+- Python server can be interact through our client API with easy to use event notifier that follows observer pattern to react to incoming message.
+- Communicate through client API through socket and root module through UART protocol.
+- Support reconnection after socket disconnection.
+- 
 Description of what the Python Server does, its responsibilities, technologies used, etc. ***[Honghui or Yudi, please fill this. just a brief description]***
 
 ### 2. ESP32 Root
@@ -50,7 +56,7 @@ Description of the Raspberry Pi, its functions, tasks it performs, etc.
 General setup and installation instructions.
 
 ## Readme Documentation
-- [Python Server](./docs/python-server.md)
+- [Python Server](https://github.com/codecultivatorscrew/Multi-agent-Communication-Network/blob/main/Python-Server)
 - [ESP Custom Root](https://github.com/codecultivatorscrew/esp_custom_root)
 - [ESP32 BLE Mesh Edge Custom Model](https://github.com/codecultivatorscrew/esp_custom_edge)
 - [Additional Components](./docs/additional-components.md)
