@@ -6,9 +6,9 @@
 
 ## Python Server Overview
 
-The python server act as a gatewall to relay the message exterior to the network module into the module. It ensures asynchronous communication can be maintain with multiple threads running. The server also implements the reconnection logic and the caches data from edge nodes for quicker access when data are request by the client API. 
+The python server act as a gatewall to relay the message exterior to the network module into the module. It ensures asynchronous communication can be maintain with multiple threads running. The server also implements the reconnection logic and caches data from edge nodes for quicker access when data are request by the client API. 
 
-
+The python server consist of three main components, The socket manager, the network manager, and the UART manager. Each of them runs on separate thread to ensure asynchrounous communication.
 [insert picture here]
 ##  Python Server Files
 
@@ -31,7 +31,7 @@ Contains a network manager class that will be launched, the network manager will
 * Supporting webscoket extennsion for further extension such as monitoring
 
 ### node.py
-Contain class that defines node with the following feature:
+Contain class that defines a edge node with the following feature:
 * Each data store all it's history infomation in a queue with timestamp
 * Supports multiple data types being stored at the same time
 * Supports inforomation lookup and update on specific data type
@@ -44,6 +44,7 @@ Contains a structure for current opcodes that can be easily add on
 [need help]
 
 ## Client API Overview
+[Since API is in a different file should this part be in a different folder?]
 
 ## Client API Files
 
