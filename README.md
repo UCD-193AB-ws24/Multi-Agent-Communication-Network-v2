@@ -1,13 +1,13 @@
 # Senior Project Communication Network Module
 
 ## Table of Contents
-- [Introduction](#introduction)
+- [Overview](#overview)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Readme Documentation](#readme-documentation)
 - [Acknowledgements](#acknowledgements)
 
-## Introduction
+## Overview
 This project is based on our Capstone Senior Design. Our client is working on agricultural robots that use the LoRA network for communication. The problem with LoRA is that while it offers long-range connectivity, it has low bandwidth. Our client wants to increase the bandwidth while maintaining the high range. This project aims to solve that problem.
 
 Our solution is a communication network module using BLE Mesh on the ESP32 Devkit Module. Our goal is to achieve a working BLE Mesh communication module with a Python server and network dashboard. With these components, we aim to address our client's problems and provide an easier way for them to adapt to new changes. Additionally, we aim to make our project adaptable for other uses and mediums, potentially as a reference for other contributors since ESP32 BLE Mesh is still a relatively new technology. Our project will help others advance their understanding and implementation of ESP32 BLE Mesh.
