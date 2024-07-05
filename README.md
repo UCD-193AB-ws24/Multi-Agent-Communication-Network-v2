@@ -69,8 +69,9 @@ Note: detailed information is provided in the subfolder readme file.
 
 ## Related Documentation
 - [Python Server](https://github.com/codecultivatorscrew/Multi-agent-Communication-Network/blob/main/Python-Server)
-- [ESP Custom Root](https://github.com/codecultivatorscrew/esp_custom_root)
-- [ESP32 BLE Mesh Edge Custom Model](https://github.com/codecultivatorscrew/esp_custom_edge)
+- [Python APIs](https://github.com/codecultivatorscrew/Multi-agent-Communication-Network/blob/main/API/Root-Python-API)
+- [ESP32 BLE Mesh Custom Root](https://github.com/codecultivatorscrew/esp_custom_root)
+- [ESP32 BLE Mesh Custom Edge](https://github.com/codecultivatorscrew/esp_custom_edge)
 - [Additional Components](./docs/additional-components.md)
 
 ## Acknowledgements
