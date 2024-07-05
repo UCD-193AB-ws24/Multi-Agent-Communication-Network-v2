@@ -64,7 +64,7 @@ Contains a structure for current opcodes that can be easily add on
 ## Client API Files
 
 ## Protocol
-[I (Yudi) will rephrase it later]
+[I (Yudi) will rephrase it later, below is outdated, I (Honghui) can do it after esp documentation]
 ``` python
 # Design Note
 # Project Configs
