@@ -25,6 +25,8 @@ As you can see from the picture, we have four main components:
 
 Below is a detailed description of each component:
 
+`Note make this section breif and keep in high level. Detile will be on the sub folder read me-------------------------------------------`
+
 ### 1. Python Server
 Our Python server serves contains abstracted network management logics and caches edge node data in the server for quicker access by the client. The existence of the python server allows edge node to constainly update the information whenever the data update is available, which makes disconnection detection easier to manage. It's also responsible for failsafe of the connectbility, so a failure within the network module doesn't crash client's entire program. Features that are included are as follows:
 - Three different thread handling communication with the client and the root edge node asynchrounously.
@@ -52,10 +54,20 @@ Our ESP32 Edge, also known as the ESP32 Server, serves as an edge node within th
 ### 4. Raspberry Pi
 Description of the Raspberry Pi, its functions, tasks it performs, etc.
 
-## Getting Started
-General setup and installation instructions.
+## Repo Folder Structure
+This repo contains the Application level `network managing server` and `client-side APIs.` The folder structure is as follows:
 
-## Readme Documentation
+- /API
+ - /Root-C-API (containing root client-side API in c)
+ - /Root-Python-API (containing root client-side API in Python, more up-to-date)
+
+- /Python-Server (containing codes that run the middle layer network manager server and serve the APIs)
+
+Note: detailed information is provided in the subfolder readme file.
+
+## Getting Started
+
+## Related Documentation
 - [Python Server](https://github.com/codecultivatorscrew/Multi-agent-Communication-Network/blob/main/Python-Server)
 - [ESP Custom Root](https://github.com/codecultivatorscrew/esp_custom_root)
 - [ESP32 BLE Mesh Edge Custom Model](https://github.com/codecultivatorscrew/esp_custom_edge)
