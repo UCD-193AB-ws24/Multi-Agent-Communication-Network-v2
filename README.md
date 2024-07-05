@@ -10,9 +10,9 @@
 ## Overview
 This project used `Bluetooth low-energy` technology to deploy a `mesh network` in the field. It was developed with the `esp-idf` IoT framework on the ESP32-h2 chip from `Espressif`.
 
-Our Capstone Senior Design client is a research team in the agricultural robots department that is researching robot-assisted agricultural activity. To address their need for a reliable local communication network in the field, we developed this project to use a Bluetooth mesh network to replace LoRa radio to achieve higher bandwidth while maintaining a high range to cover the entire field. 
+Our Capstone Senior Design client is a research team in the agricultural robots department that is researching `robot-assisted agricultural activity`. To address their need for a reliable local communication network in the field, we developed this project to use a Bluetooth mesh network to replace LoRa radio to achieve `higher bandwidth` while maintaining a `high range` to cover the entire field. 
 
-The project aims to provide an easily deployable local network with a `network management server` and `network status dashboard`. With these components, we aim to address our clients' problems and make it easier for them to adapt to new changes. Additionally, the module is designed to be generalized, flexible, and adaptable for other uses and mediums.
+The project aims to provide an `easily deployable local network` with a `network management server` and `network status dashboard`. With these components, we aim to address our clients' problems and make it easier for them to adapt to new changes. Additionally, the module is designed to be generalized, flexible, and adaptable for other uses and mediums.
 
 Lastly, since ESP32 BLE Mesh is still a relatively new technology, there are few examples of it with the esp-idf framework. We aim to document the firmware code as a potential reference for others to advance their understanding and implementation of BLE Mesh with ESP32 chip and esp-idf.
 
