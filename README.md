@@ -55,6 +55,7 @@ Note: detailed information is provided in the subfolder readme file.
 - [ESP32 BLE Mesh Custom Root](https://github.com/codecultivatorscrew/esp_custom_root)
 - [ESP32 BLE Mesh Custom Edge](https://github.com/codecultivatorscrew/esp_custom_edge)
 - [Additional Components](./docs/additional-components.md)
+- Testers
 
 ## Acknowledgements
 Credits to contributors, libraries, and tools used.
