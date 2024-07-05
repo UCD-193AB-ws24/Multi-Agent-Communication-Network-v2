@@ -57,11 +57,11 @@ Description of the Raspberry Pi, its functions, tasks it performs, etc.
 ## Repo Folder Structure
 This repo contains the Application level `network managing server` and `client-side APIs.` The folder structure is as follows:
 
-- /API
- - /Root-C-API (containing root client-side API in c)
- - /Root-Python-API (containing root client-side API in Python, more up-to-date)
+- `/API`
+  - `/Root-C-API` (containing root client-side API in c)
+  - `/Root-Python-API` (containing root client-side API in Python, more up-to-date)
 
-- /Python-Server (containing codes that run the middle layer network manager server and serve the APIs)
+- `/Python-Server` (containing codes that run the middle layer network manager server and serve the APIs)
 
 Note: detailed information is provided in the subfolder readme file.
 
