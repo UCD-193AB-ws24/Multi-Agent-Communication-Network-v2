@@ -35,6 +35,8 @@ The 3 components are designed to be loosely coupled to provide flexibility in se
  - The Network Managing Server is not 'required' to use the network module as it just adds another layer to help reduce work on managing the network.
  - The software interacts with the Network Managing Server and can be written in any language as long as it can establish a socket connection to the Server.
 
+## Logic Flow Chart
+
 
 ## Repo Folder Structure
 This repo contains the Application level `network managing server` and `client-side APIs.` The folder structure is as follows:
