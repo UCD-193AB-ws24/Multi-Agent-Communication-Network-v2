@@ -1,21 +1,24 @@
 # Python Server / client API
 ===================================
 ## Table of Contents
-- [Python Server Overview](#python-server-overview)
-  - [Socket Manager](socket-manager)
-  - [Network Manager](#network-manager)
-  - [UART Manager](#uart-manager)
-  - [Data Flow Diagram](#data-flow-diagram)
-- [Python Server Files](#python-server-files)
-  - [Python_Server.py](#python_serverpy)
-  - [socket_manager.py](#socket_managerpy)
-  - [uart_manager.py](#uart_managerpy)
-  - [network_manager.py](#network_managerpy)
-  - [node.py](#nodepy)
-  - [message_opcodes.py](#message_opcodespy)
-  - [web_socket_proxy_server.py](#web_socket_proxy_serverpy)
-- [Protocol](#protocol)
-- [References](#references)
+- [Python Server / client API](#python-server--client-api)
+  - [Table of Contents](#table-of-contents)
+  - [Python Server Overview](#python-server-overview)
+    - [Socket Manager](#socket-manager)
+    - [Network Manager](#network-manager)
+    - [UART Manager](#uart-manager)
+    - [Data Flow Diagram](#data-flow-diagram)
+  - [Python Server Files](#python-server-files)
+    - [Python\_Server.py](#python_serverpy)
+    - [socket\_manager.py](#socket_managerpy)
+    - [uart\_manager.py](#uart_managerpy)
+    - [network\_manager.py](#network_managerpy)
+    - [node.py](#nodepy)
+    - [message\_opcodes.py](#message_opcodespy)
+    - [web\_socket\_proxy\_server.py](#web_socket_proxy_serverpy)
+  - [Network Commands](#network-commands)
+  - [Defult Message Opcodes](#defult-message-opcodes)
+  - [References](#references)
 
 ## Python Server Overview
 
@@ -71,50 +74,81 @@ Contains a structure for current opcodes that can be easily add on
 [need help]
 
 
-## Protocol
+## Network Commands
 [I (Yudi) will rephrase it later, below is outdated, I (Honghui) can do it after esp documentation]
+Network command is defined to use 5 bytes encoding the operation in network module or python server.
 ``` python
-######################################################################################
-# === Network Command  ===
-# 'SEND-' send message
-# 'BCAST' broadcast message
-# 'RST-R' reset root module
+############################# Overview #######################################
+# I. Network Command supported by esp module
+#   (Commands will pass down to and executed in esp module)
+#   'SEND-' send message without esp module tracking delivery confirmation
+#   'SENDI' send and tracks message, retransmit up to 3 times with higher ttl
+#   'BCAST' broadcast message
+#   'RST-R' restart root module
+#   'CLEAN' clean and reset the network in persistent memoory
+#   'NINFO' get network info in bytes
+#   'STATE' get node connection state in edge module (only for Edge-API)
 #
-# 'NINFO' get network info
-# 'NSTAT' get network node status
-# 'ND-ST' get individual node status
-# '[GET]' get node data
-# 'ACT-C' get active node count
+# II. Network Command supported by network server
+#   (Additional Commands will executed network server)
+#   'NINFO' get network info and process to json format
+#   'NSTAT' get node status
+#   '[GET]' get node data
+#   'ACT-C' get active node count
+#
+############################## Detiles #######################################
+#
+# I. Networok Module Commands (base commands supported by network module)
+#
+#   1) Messaging Commands ('SEND-', 'SENDI', and 'BCAST')
+#       Delivers an message between devices ( root-api <--> edge device-api )
+#       
+#       => Root-client-API / Edge-client-API Sends:
+#         | messaging_command | dst_node_addr |      payload      |
+#         |      5 byte       |     2 byte    |    message bytes  | 
+#
+#       <= Edge-client-API / Root-client-API Receives:
+#         | src_node_addr |      payload      |
+#         |     2 byte    |    message bytes  |
 # 
+#       Response to command execution to APIs
+#         'S' or 'F|error_msg_size|error_msg'
+#      
+#   note: for 'BCAST' 2 byte dst_node_addr is just place holder and not getting
+#         used in sendding, put 0 as dst_node_addr is sufficient since it align
+#         with "selecting all node" in other commands.
 #
-# === API opcode / message type === 
-# 'ECH' for echo message, expecting copy
-# 'CPY' for copy message on recived 'ECH'  or 
+#   2) Operation Commands ('RST-R', 'CLEAN')
+#       Order module to perform corresponded operation, no payload needed
+#         | messaging_command |      payload      |
 #
-# 'NET' Network Information message
-# 'NOD' Node Connecetd update message
-# 'RST' root module reseted
-# 'NDS' Node State message   
-# '[D]' node data
+#   3) Query Commands ('NINFO', 'STATE') (TB Finish)
 #
-######################################################################################
+# II. Networok Server Commands (additional commands supported by network manager server)
 #
-# Design Note
+#   1) 'NINFO'
 #
-# =========================== API Message passing format ================================
-# our API one side to ther other (root-api -> edge device-api OR edge device-api -> root-api):
-# Root-client-API / Edge-client-API Sends:
-# ble_network_command | dst_node_addr |          message        |
-#       5 byte        |     2 byte    | 3 byte opcode | payload |
 #
-# Edge-client-API / Root-client-API Sends:
-#   src_node_addr |          message        |
-#      2 byte     | 3 byte opcode | payload |
+#   2) 'NSTAT'
 #
-# message is the same (client can change opcode & opcode length whatever they want in APP level), address will be dst for sender, src for reciver
-# besides the special pre-defined opcodes will get handle by python server, rest will show up on API
 #
-# =========================== API protocal ================================
+#   3) '[GET]'
+#
+#
+#   4) 'ACT-C'
+#
+
+
+
+
+
+# bleow is the raw design note that need to be clean and reformat
+
+
+
+
+#
+# =========================== API protocal ================================ detile case for each command (TB Finish)
 # Struct: 5_byte_command | payload
 # 
 # ===== Get Data =====
@@ -145,35 +179,35 @@ Contains a structure for current opcodes that can be easily add on
 # 'S' or 'F|msg_size|Error_msg'
 # 
 #
-# =========================== API Message special opcodes ================================
+# =========================== API Message special opcodes ================================ detile case for each defulet messages (TB Finish)
 # speicla opcodes don't pass to the other side of API but got take cared by Python-Server
 #
 # ******** Special opcode KEY STRUCT *******
-#               Msg_meta            |     Payload
-#  2_byte_node_addr|3_byte_msg_type |     payload
+#     Msg_meta        |       Msg_Payload
+#  2_byte_node_addr   |   1_byte_opcode + payload (defult format)
 # *******************************************
 #
 # (uart) ===== Root Full Reset =====
 # => incoming 
-# root_addr|RST|
-#    2     | 3 |
+# root_addr|RST_opcode|
+#    2     | 1 |
 #
 # (uart) ===== Data Update from edge-API =====
 # => incoming data update
-# node_addr|[D]| size_n|data_type|data_length_byte|data|...|data_type|data_length_byte|data
-#    2     | 3 |   1   |   3     |     1          | n| ... (size of each segment in bytes)
+# node_addr|Data_Update_opcode| size_n|data_ID|data| ... |data_ID|data|
+#    2     | 1                |   1   |   1   | xx | ... |   1   | xx | 
 #
-# (uart) ===== Network Status update from esp-root =====
+# (uart) ===== Network Status update from esp-root ===== (TB Finish)
 # => incoming socket Network Status Update
 # root_addr|NET| node_amount|node_0_addr|node_0_uuid|....|node_n_addr|node_n_uuid
 #    2     | 3 |     1      |   2 byte  |  16 byte  |....|   2 byte  |  16 byte  |
 #
-# (uart) ===== Node Connecetd update =====
+# (uart) ===== Node Connecetd update ===== (TB Finish)
 # => incoming 
 # root_addr|NOD| node_addr | node_uuid |
 #    2     | 3 |    2 byte |  16 byte  |
 #
-# =========================== uart encoding ================================
+# =========================== uart encoding ================================ (TV Review)
 #
 # **** UART ENCODE ***
 # \ff - start of transmission
@@ -185,17 +219,11 @@ Contains a structure for current opcodes that can be easily add on
 #   decode: \fa Xor \05 = \ff
 #
 # =========================== Node Structure ================================
-# Pre-Define: some data type such as GPS
-#   - define the data_type key for saving/logging/accessing data
-#   - define the length (byte) of data and implments data->data_bytes parseing
-#   * "GPS", 6 byte, longtitue|latitude
-#
-# Dynamic: allow adding other data_type
-#   - when the data generated from edge-device it will pass over as byte directly
-#   - save as byte and give it to client as byte
-#   - So client can define custom data-type 
-#     and sync btw their own edge-device code and control-software code
-#
+# Pre-Define data type in Json file to save network bandwidth
+#   - define name (key), one byte ID, and data length (bytes) for data types
+#   - Name is used as key and logging label.
+#   - One byte ID is used as identifier in network message
+#   - Data length is used in parsing and extracing data bytes from entire message bytes.
 #
 # Work Pending finish (ctr-f "TB Finish")
 # Work Pending review (ctr-f "TB Review")
@@ -210,5 +238,15 @@ Contains a structure for current opcodes that can be easily add on
 #
 ```
 
+## Defult Message Opcodes
+
+``` python
+#
+# === defult API opcode / message type === (wrong, updated to one byte opcode define in seperate file)
+# one byte use to control the message type in application level, is part of message.
+#
+#
+#
+```
 ## References
 [do we have reference?]
