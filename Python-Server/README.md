@@ -1,8 +1,21 @@
 # Python Server / client API
 ===================================
 ## Table of Contents
-
-## Overview
+- [Python Server Overview](#python-server-overview)
+  - [Socket Manager](socket-manager)
+  - [Network Manager](#network-manager)
+  - [UART Manager](#uart-manager)
+  - [Data Flow Diagram](#data-flow-diagram)
+- [Python Server Files](#python-server-files)
+  - [Python_Server.py](#python_serverpy)
+  - [socket_manager.py](#socket_managerpy)
+  - [uart_manager.py](#uart_managerpy)
+  - [network_manager.py](#network_managerpy)
+  - [node.py](#nodepy)
+  - [message_opcodes.py](#message_opcodespy)
+  - [web_socket_proxy_server.py](#web_socket_proxy_serverpy)
+- [Protocol](#protocol)
+- [References](#references)
 
 ## Python Server Overview
 
@@ -16,14 +29,14 @@ addressing the simbple data request will be send back through the `sendinig conn
 
 ### Network Manager
 The network manager pass on the message between UART Manager and Socket Manager. Since the the Socket Manager and the UART Manager are in the different thread, the Network Manger need to communicate through callback function. When the Network Manager need to pass the message to Socket Manager or UART Manager, it need to call the callback function from the respective manager that were passed in during the initialization. When the Socket Manager and the UART Manager need to pass message to the Network Manager, they will called the callback function defined within the Network Manager.
-[possible example code here]
+[possible example code here?]
 
 
-### 
+### UART Manager
+The UART Manager first Scan the serial ports of the machine to detect a UART port, the Python library automatically handles reading  and writing. When a message is received it will be decoded and triggles the callback function defined in the `Network Manager` class to update the node data or further pass the message to the `Socket Manager`
 
-
-
-[insert picture here]
+### Data Flow Diagram
+[insert picture here, that one picture Yudi made just need some tweek, and fix the mistake on the sockets]
 
 ##  Python Server Files
 
@@ -51,17 +64,12 @@ Contain class that defines a edge node with the following feature:
 * Supports multiple data types being stored at the same time
 * Supports inforomation lookup and update on specific data type
 
-
 ### message_opcodes.py
 Contains a structure for current opcodes that can be easily add on
 
 ### web_socket_proxy_server.py
 [need help]
 
-## Client API Overview
-[Since API is in a different file should this part be in a different folder?]
-
-## Client API Files
 
 ## Protocol
 [I (Yudi) will rephrase it later, below is outdated, I (Honghui) can do it after esp documentation]
@@ -202,4 +210,5 @@ Contains a structure for current opcodes that can be easily add on
 #
 ```
 
-## Referneces
+## References
+[do we have reference?]
