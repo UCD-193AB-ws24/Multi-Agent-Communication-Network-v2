@@ -21,6 +21,8 @@
     - [Network Module Commands](#network-module-commands)
     - [Network Server Commands](#network-server-commands)
   - [Defult Message Opcodes](#defult-message-opcodes)
+  - [Uart Signal Encoding Scheme](#uart-signal-encoding-scheme)
+  - [Node Structure (not sure if needed)](#node-structure-not-sure-if-needed)
   - [References](#references)
 
 ## Python Server Overview
@@ -239,20 +241,49 @@ Network command is defined to use 5 bytes encoding the operation in network modu
 #       => Root-client-API Recives:
 #         | 'S' |
 ```
+## Defult Message Opcodes
 
+``` python
+# =============== Opcode Detiles and Payload Format ================
+#
+# ******** MESSAGE DEFULT STRUCT *******
+#     Msg_meta        |       Msg_Payload
+#  2_byte_node_addr   |   1_byte_opcode + payload
+# *******************************************
+#
+# Most message is delevierd between root-APIs <-> edge APIs, they will not stop
+# at python-server and gets propogate to application level via Socket.
+#
+# Message with "Special opcodes" from edge APIs will get processed by 
+# Python-Server and DON'T get propogate to application level.
+#
+# 1) Data Update from edge-API (Special case)
+#    Incoming data update get handler in python server
+#       => Edge-client-API Sends:
+#         | node_addr| 'D' | amount |data_ID|data| ... |data_ID|data|
+#         |    2     |  1  |    1   |   1   | L  | ... |   1   | L  |
+#
+#       note: data length (L) is pre-defined in "Data_Info.json" and shared 
+#             accross devices.
+#
+```
+
+## Uart Signal Encoding Scheme
 ```py
 # =========================== uart encoding ================================ (TV Review)
 #
-# **** UART ENCODE ***
+# **** UART Reserved Bytes ***
 # \ff - start of transmission
 # \fe - end of transmission
 # \fa - escape byte
+# \fb to \fd - reserved but not used
 # 
-# ex: byte \ff will be transmite as \fa\05
+# ex: byte \ff will be encode and transmite as \fa\05 (2 encoded byte)
 #   encode: \fa Xor \ff = \05
 #   decode: \fa Xor \05 = \ff
 ```
 
+## Node Structure (not sure if needed)
 ```py
 # =========================== Node Structure ================================
 # Pre-Define data type in Json file to save network bandwidth
@@ -266,15 +297,5 @@ Network command is defined to use 5 bytes encoding the operation in network modu
 # Work Pending fix (ctr-f "TB Fix")
 ```
 
-## Defult Message Opcodes
-
-``` python
-#
-# === defult API opcode / message type === (wrong, updated to one byte opcode define in seperate file)
-# one byte use to control the message type in application level, is part of message.
-#
-#
-#
-```
 ## References
 [do we have reference?]
