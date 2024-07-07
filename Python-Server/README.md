@@ -1,7 +1,7 @@
-# Python Server / client API
+# Python Server / Client API
 ===================================
 ## Table of Contents
-- [Python Server / client API](#python-server--client-api)
+- [Python Server / Client API](#python-server--client-api)
   - [Table of Contents](#table-of-contents)
   - [Python Server Overview](#python-server-overview)
     - [Socket Manager](#socket-manager)
@@ -17,6 +17,9 @@
     - [message\_opcodes.py](#message_opcodespy)
     - [web\_socket\_proxy\_server.py](#web_socket_proxy_serverpy)
   - [Network Commands](#network-commands)
+    - [Overview](#overview)
+    - [Network Module Commands](#network-module-commands)
+    - [Network Server Commands](#network-server-commands)
   - [Defult Message Opcodes](#defult-message-opcodes)
   - [References](#references)
 
@@ -73,16 +76,18 @@ Contains a structure for current opcodes that can be easily add on
 ### web_socket_proxy_server.py
 [need help]
 
-
 ## Network Commands
-[I (Yudi) will rephrase it later, below is outdated, I (Honghui) can do it after esp documentation]
+[I (Yudi) will rephrase it later, below is outdated, I (Honghui) can do it after ESP documentation]
 Network command is defined to use 5 bytes encoding the operation in network module or python server.
-``` python
+
+### Overview
+```py
 ############################# Overview #######################################
-# I. Network Command supported by esp module
-#   (Commands will pass down to and executed in esp module)
-#   'SEND-' send message without esp module tracking delivery confirmation
-#   'SENDI' send and tracks message, retransmit up to 3 times with higher ttl
+#
+# I. Network Command supported by ESP module
+#   (Commands will pass down to and executed in ESP module)
+#   'SEND-' send message without ESP module tracking delivery confirmation
+#   'SENDI' send and tracks message, retransmit up to 3 times with higher TTL
 #   'BCAST' broadcast message
 #   'RST-R' restart root module
 #   'CLEAN' clean and reset the network in persistent memoory
@@ -96,18 +101,26 @@ Network command is defined to use 5 bytes encoding the operation in network modu
 #   '[GET]' get node data
 #   'ACT-C' get active node count
 #
-############################## Detiles #######################################
+#   (Additional Commands invoiving network monitor)
+#   'W-LOG' log message to network monitor
+#   'W-RBT' update robot status to network monitor
 #
-# I. Networok Module Commands (base commands supported by network module)
+```
+
+### Network Module Commands
+```py
+############################## Details #######################################
+#
+# I. Network Module Commands (base commands supported by network module)
 #
 #   1) Messaging Commands ('SEND-', 'SENDI', and 'BCAST')
 #       Delivers an message between devices ( root-api <--> edge device-api )
 #       
-#       => Root-client-API / Edge-client-API Sends:
+#       => (Sender) Root-client-API / Edge-client-API Sends:
 #         | messaging_command | dst_node_addr |      payload      |
-#         |      5 byte       |     2 byte    |    message bytes  | 
+#         |      5 byte       |     2 byte    |    message bytes  |
 #
-#       <= Edge-client-API / Root-client-API Receives:
+#       <= (Reciver) Edge-client-API / Root-client-API Receives:
 #         | src_node_addr |      payload      |
 #         |     2 byte    |    message bytes  |
 # 
@@ -121,92 +134,113 @@ Network command is defined to use 5 bytes encoding the operation in network modu
 #   2) Operation Commands ('RST-R', 'CLEAN')
 #       Order module to perform corresponded operation, no payload needed
 #         | messaging_command |      payload      |
+
+#       Response to command execution to APIs
+#         'S' or 'F|error_msg_size|error_msg'
 #
 #   3) Query Commands ('NINFO', 'STATE') (TB Finish)
+#        (TB Finish)
+#        (TB Finish)
 #
-# II. Networok Server Commands (additional commands supported by network manager server)
-#
-#   1) 'NINFO'
-#
-#
-#   2) 'NSTAT'
-#
-#
-#   3) '[GET]'
-#
-#
-#   4) 'ACT-C'
-#
+```
 
-
-
-
-
-# bleow is the raw design note that need to be clean and reformat
-
-
-
-
+### Network Server Commands
+```py
+###############################################################################
 #
-# =========================== API protocal ================================ detile case for each command (TB Finish)
-# Struct: 5_byte_command | payload
+# II. Network Server Commands (additional commands supported by network manager server)
+#
+#   1) 'NINFO' - Overwrites the 'NINFO' from module, process and return network
+#                information.
+#       => Root-client-API Sends:
+#         | net_info_command |
+#         |     5 bytes   |
+#
+#       <= Root-client-API Recives response from Server:
+#         Not Applicable. This command as designed but not implmented since
+#         'NSTAT' command below provides basic network status already, choices
+#         of intersted network infomation data remain determine.
+#
+#
+#   2) 'NSTAT' - Get all node's information
+#       => Root-client-API Sends:
+#         | node_info_command |
+#         |      5 bytes      |
+
+#       <= Root-client-API Recives Json response from Server:
+#         | 'S' success_flag | Json_encoded_data |
+#         |      1 byte      |        n          |
+#
+#        Json Object format:
+#          network_status = {
+#              "node_amount" : 0,
+#              "node_addr_list": [],
+#              "node_status_list": []
+#          }
+#
+#
+#   3) '[GET]' - Get latest data of node/nodes
+#       => Root-client-API Sends:
+#         | get_command | data_ID | node_addr |
+#         |    5 bytes  |    1    |   2 bytes |
+
+#       <= Root-client-API Recives response from Server:
+#         | error_flag | payload |
+#         |   1 byte   |    n    |
 # 
-# ===== Get Data =====
-# => incoming command
-# [GET]|data_type|node_addr/index // Need to chaneg to node_addr|daya_type  ------------------------- "TB Finish" -------------------------
+#        Success:
+#         | 'S' | data_ID | data_length (L) | node_amount (N) | node_addr_0 | data_0 | ... | node_addr_n | data_n | 
+#         |  1  |    1    |        1        |        1        |      2      |    L   | ... |      2      |    L   |
 #
-# <= response (single or patch)
-# S|data_type|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
-# OR
-# F|message_size|Error_flag/Message
+#        Faild:
+#         | 'F' | length (L) | Error_Message |
+#         |  1  |     1      |       L       |
 #
-# ===== Network Status Query =====
-# => incoming socket Network Status Query
-# NETIF|state   - states are A:active, D:disconnected, N:not avaiable ...
 #
-# <= responde nodes with that state
-# S |node_amount|node_0_addr|node_0_uuid|....|node_n_addr|node_n_uuid
-# 1 |     1      |   2 byte  |  16 byte  |....|   2 byte  |  16 byte  |
-# OR
-# F|message_size|Error_flag/Message
+#   4) 'ACT-C' - Get amount of active node
+#       => Root-client-API Sends:
+#         | count_command |
+#         |     5 bytes   |
 #
-# ===== Send to edge ===== (direcly pass to esp-root module for execution)
-# => incoming command
-# SEND- | dst_node_addr  | message
-# BCAST | 2_byte_padding | message
-#
-# <= response
-# 'S' or 'F|msg_size|Error_msg'
+#       <= Root-client-API Recives response from Server:
+#         | error_flag | payload |
+#         |   1 byte   |    n    |
 # 
+#        Success:
+#         | 'S' | active_node_count | 
+#         |  1  |         1         |
 #
-# =========================== API Message special opcodes ================================ detile case for each defulet messages (TB Finish)
-# speicla opcodes don't pass to the other side of API but got take cared by Python-Server
+#        Faild:
+#         Not Applicable
+
+#   # note: commands involing network monitor
+#   5) 'W-LOG' - Log message to network monitor
+#       => Root-client-API Sends:
+#         |  command  | message |
+#         |  5 bytes  |    n    |
+
+#       => Root-client-API Recives:
+#         | 'S' |
 #
-# ******** Special opcode KEY STRUCT *******
-#     Msg_meta        |       Msg_Payload
-#  2_byte_node_addr   |   1_byte_opcode + payload (defult format)
-# *******************************************
 #
-# (uart) ===== Root Full Reset =====
-# => incoming 
-# root_addr|RST_opcode|
-#    2     | 1 |
+#   6) 'W-RBT' - Update robot status to network monitor
+#      (Beta version, remain more testing)
+#       => Root-client-API Sends:
+#         |  command  | payload |
+#         |  5 bytes  |    n    |
+# 
+#         payload format (python list):
+#           [
+#              { "id": 1, "name": "Robot Node 1", "state": "Active", "node": 'Node-0' },
+#              { "id": 2, "name": "Robot Node 2", "state": "Active", "node": 'Node-1' },
+#              ...
+#           ]
 #
-# (uart) ===== Data Update from edge-API =====
-# => incoming data update
-# node_addr|Data_Update_opcode| size_n|data_ID|data| ... |data_ID|data|
-#    2     | 1                |   1   |   1   | xx | ... |   1   | xx | 
-#
-# (uart) ===== Network Status update from esp-root ===== (TB Finish)
-# => incoming socket Network Status Update
-# root_addr|NET| node_amount|node_0_addr|node_0_uuid|....|node_n_addr|node_n_uuid
-#    2     | 3 |     1      |   2 byte  |  16 byte  |....|   2 byte  |  16 byte  |
-#
-# (uart) ===== Node Connecetd update ===== (TB Finish)
-# => incoming 
-# root_addr|NOD| node_addr | node_uuid |
-#    2     | 3 |    2 byte |  16 byte  |
-#
+#       => Root-client-API Recives:
+#         | 'S' |
+```
+
+```py
 # =========================== uart encoding ================================ (TV Review)
 #
 # **** UART ENCODE ***
@@ -217,7 +251,9 @@ Network command is defined to use 5 bytes encoding the operation in network modu
 # ex: byte \ff will be transmite as \fa\05
 #   encode: \fa Xor \ff = \05
 #   decode: \fa Xor \05 = \ff
-#
+```
+
+```py
 # =========================== Node Structure ================================
 # Pre-Define data type in Json file to save network bandwidth
 #   - define name (key), one byte ID, and data length (bytes) for data types
@@ -228,14 +264,6 @@ Network command is defined to use 5 bytes encoding the operation in network modu
 # Work Pending finish (ctr-f "TB Finish")
 # Work Pending review (ctr-f "TB Review")
 # Work Pending fix (ctr-f "TB Fix")
-# 
-# ----------------- wating finishing ----------------------------
-#
-# - now when a node sends data over, it add node to list if is not already in list, not using name and uuid of nodes!!
-# - getNodeStatus
-#
-#
-#
 ```
 
 ## Defult Message Opcodes

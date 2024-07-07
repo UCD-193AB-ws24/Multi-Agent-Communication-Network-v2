@@ -54,7 +54,7 @@ class Network_Manager():
         # <= data outgoing (single or patch)
         # S|data_ID|data_length_byte|size_n|node_addr/index_0|data_0|...|node_addr/index_n|data_n
         # ^ success
-        # F|Error_flag/Message
+        # F|Length|Error_flag/Message
         response = b'S' + data_ID.encode()
 
         # ============== need to be remake for correct data length ===================
@@ -154,7 +154,6 @@ class Network_Manager():
          ############## Command get handled in Server ##############
         if command == "[GET]": # Get data
             # [GET]|data_ID|node_addr/index
-            # node_addr = socket.ntohs(payload[0:2]) # int.from_bytes(payload[3], byteorder='little')
             node_addr = parseNodeAddr(payload[0:2]) # unpack 2 byte and converts them from network byte order to host byte order
             data_ID = payload[2:5].decode('utf-8')
             return self.getNodeData(data_ID, node_addr)
@@ -189,12 +188,13 @@ class Network_Manager():
         if command == "W-LOG": # log traffic to website
             # payload is log message
             self.web_log(payload)
+            return b'S'
             
         if command == "W-RBT": # update robot status to website
             # payload is robot status list
             self.web_robot_status_update(payload)
+            return b'S'
 
-            
         
          ############## Command get handled in ESP-Root-Module ##############
         # all other commands
