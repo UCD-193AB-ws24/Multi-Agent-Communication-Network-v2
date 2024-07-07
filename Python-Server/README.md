@@ -259,9 +259,9 @@ Network command is defined to use 5 bytes encoding the operation in network modu
 #
 # 1) Data Update from edge-API (Special case)
 #    Incoming data update get handler in python server
-#       => Edge-client-API Sends:
-#         | node_addr| 'D' | amount |data_ID|data| ... |data_ID|data|
-#         |    2     |  1  |    1   |   1   | L  | ... |   1   | L  |
+#       => Edge-client-API Sends Message:
+#         | 'D' | amount | data_ID | data | ... | data_ID | data |
+#         |  1  |    1   |    1    |   L  | ... |    1    |   L  |
 #
 #       note: data length (L) is pre-defined in "Data_Info.json" and shared 
 #             accross devices.
