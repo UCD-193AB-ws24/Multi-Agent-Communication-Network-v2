@@ -1,14 +1,14 @@
-# Python Server / Client API
+# Python Server API
 ===================================
 ## Table of Contents
-- [Python Server / Client API](#python-server--client-api)
+- [Python Server API](#python-server-api)
   - [Table of Contents](#table-of-contents)
-  - [Python Server Overview](#python-server-overview)
+  - [Overview](#overview)
     - [Socket Manager](#socket-manager)
     - [Network Manager](#network-manager)
     - [UART Manager](#uart-manager)
     - [Data Flow Diagram](#data-flow-diagram)
-  - [Python Server Files](#python-server-files)
+  - [Code Structure](#code-structure)
     - [Python\_Server.py](#python_serverpy)
     - [socket\_manager.py](#socket_managerpy)
     - [uart\_manager.py](#uart_managerpy)
@@ -17,7 +17,7 @@
     - [message\_opcodes.py](#message_opcodespy)
     - [web\_socket\_proxy\_server.py](#web_socket_proxy_serverpy)
   - [Network Commands](#network-commands)
-    - [Overview](#overview)
+    - [Overview](#overview-1)
     - [Network Module Commands](#network-module-commands)
     - [Network Server Commands](#network-server-commands)
   - [Defult Message Opcodes](#defult-message-opcodes)
@@ -25,7 +25,7 @@
   - [Node Structure (not sure if needed)](#node-structure-not-sure-if-needed)
   - [References](#references)
 
-## Python Server Overview
+## Overview
 
 The python server act as a gatewall to relay the message exterior to the network module into the module. It ensures asynchronous communication can be maintain with multiple threads running. The server also implements the reconnection logic and caches data from edge nodes for quicker access when data are request by the client API. The python server consist of three main components, The `Socket Manager`, the `Network Manager`, and the `UART Manager`. 
 
@@ -46,7 +46,7 @@ The UART Manager first Scan the serial ports of the machine to detect a UART por
 ### Data Flow Diagram
 [insert picture here, that one picture Yudi made just need some tweek, and fix the mistake on the sockets]
 
-##  Python Server Files
+## Code Structure
 
 ### Python_Server.py
 Setup an instance of three class with the correct callback function then launches the socket communication thread and the Uart communication thread
