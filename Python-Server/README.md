@@ -1,4 +1,4 @@
-# Python Server / Client API
+# Python Server API
 ===================================
 
 
@@ -89,7 +89,7 @@ just empty for now, easy to add
 
 ----------------------- raw documentations from before --------------------------------
 
-## Python Server Overview
+## Overview
 
 The python server act as a gatewall to relay the message exterior to the network module into the module. It ensures asynchronous communication can be maintain with multiple threads running. The server also implements the reconnection logic and caches data from edge nodes for quicker access when data are request by the client API. The python server consist of three main components, The `Socket Manager`, the `Network Manager`, and the `UART Manager`. 
 
@@ -110,7 +110,7 @@ The UART Manager first Scan the serial ports of the machine to detect a UART por
 ### Data Flow Diagram
 [insert picture here, that one picture Yudi made just need some tweek, and fix the mistake on the sockets]
 
-##  Python Server Files
+## Code Structure
 
 ### Python_Server.py
 Setup an instance of three class with the correct callback function then launches the socket communication thread and the Uart communication thread
