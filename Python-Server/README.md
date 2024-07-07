@@ -1,29 +1,93 @@
 # Python Server / Client API
 ===================================
+
+
 ## Table of Contents
-- [Python Server / Client API](#python-server--client-api)
-  - [Table of Contents](#table-of-contents)
-  - [Python Server Overview](#python-server-overview)
-    - [Socket Manager](#socket-manager)
-    - [Network Manager](#network-manager)
-    - [UART Manager](#uart-manager)
-    - [Data Flow Diagram](#data-flow-diagram)
-  - [Python Server Files](#python-server-files)
-    - [Python\_Server.py](#python_serverpy)
-    - [socket\_manager.py](#socket_managerpy)
-    - [uart\_manager.py](#uart_managerpy)
-    - [network\_manager.py](#network_managerpy)
-    - [node.py](#nodepy)
-    - [message\_opcodes.py](#message_opcodespy)
-    - [web\_socket\_proxy\_server.py](#web_socket_proxy_serverpy)
-  - [Network Commands](#network-commands)
-    - [Overview](#overview)
-    - [Network Module Commands](#network-module-commands)
-    - [Network Server Commands](#network-server-commands)
-  - [Defult Message Opcodes](#defult-message-opcodes)
-  - [Uart Signal Encoding Scheme](#uart-signal-encoding-scheme)
-  - [Node Structure (not sure if needed)](#node-structure-not-sure-if-needed)
-  - [References](#references)
+just empty for now, easy to add
+
+
+
+## Overview
+
+### I. Role of Python Server
+  - server as middle layer btw client software with network module, providing additional application level servercie. (Server not required to use network module)
+
+### II. Message flow Overview
+  (how it serves as middle support layer between client software and network module)
+  API <---socket---> python server <---uart---> module
+
+### III. Python Server Interaction
+ - APIs using socket .....
+ - python server using uart port
+
+### IV History log feature
+
+## Python Server Setup - How to use python server
+ - python lib installaztion (requirement.txt -> setup and configuration basically)
+ - operating system (only work in linux for now bc of socket and usb port access)
+
+------------------- then details in how to set up API --------------------
+
+## 1) Python Server Interface design
+  - Socket Communication   (API <--> Server communication channle and structure)
+
+### Overview
+  - chart needed
+
+### I. establish connection
+
+### II. main server -> API socket (rewording needed)
+
+### III. mutiple send API -> server socket (rewording needed)
+
+------------------- then details in how to talk to APIs --------------------
+
+## 2) Protocol (rewording might needed)
+ 
+### Overview
+  - Picture (add on)
+
+### Network Command
+  - how to perfom certain operation
+
+### Message Opcode
+  - app level message type inditification and reserved opcode
+
+### Network Endianess
+  - byte order of number
+
+------------------- then details in how server works --------------------
+
+## 3) Python Server Internal Logic (Server Internal Logic Flow)
+
+### Overview
+  - briefly explain 3 class (OOP design) and Callback Functions Flow
+  - chart (showing 3 objects, logic flows)
+  - mention callback based design
+
+### Main.c
+  - Initialization of Server
+    - luncing each "manager"
+    - attach callbacks
+    - 3 thread, and their role
+  - what variables modifiable, what they controlling
+
+### Class Objects
+  - manager objects roles
+  - classes provide functions to their associated responsibiity
+
+### Detailed Callback Functions Flow
+  - should propably include in python code file itself? or introduce in certain degress in readme as well?
+
+### Utility functions / files
+  - Data Type information file
+  - Opcode files
+  - History log folder
+  - Network endianess
+
+
+
+----------------------- raw documentations from before --------------------------------
 
 ## Python Server Overview
 

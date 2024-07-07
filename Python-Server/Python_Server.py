@@ -39,7 +39,7 @@ def main():
     uart_manager.run()
     socket_manager.run()
     web_manager.run()
-    net_manager.run_on_current_thread()
+    net_manager.run_on_current_thread() # keep main thread alive
 
 if __name__ == "__main__":
     main()
