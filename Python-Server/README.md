@@ -80,7 +80,7 @@ The Following are the adjustible variable for further configuration of the pytho
 - log_folder: The path of the file for logging the node datas.
 
 ### Class Objects
-1) Socket Manager
+#### 1) Socket Manager
 The `Socket Manager` handles the communication between the python server and the user's program through sockets, since both process will be running on the same device. It will open a listening socket and accept incoming connections. Upon receiving a connection, it will first check which type of connection, because there are two types of connections that can be expected. First, the manager need to initiate the socket. Then it needs to launch a thread to keep the socket open for accepting incomming connections.
 
 The first type of connection is the `listening connection`. This listening connection is setup for the user program to listen to the majority of the messages sent from the Python server. The `listening connection` is identified and established through a handshake. When a `listening connection` is not established, all incoming connections will be checked for a handshake before connection. When the `listening connection` failed from the user end and need to be reconnected, this handshake is also very important for the python server to be ready for the reconnection of the `listening connection`. 
@@ -91,14 +91,14 @@ In our design, when the client sends any request to the python server, the respo
 
 On the other hand, a response addressing a simple data request will be sent back through the `sending connection` that sent the request in the first place, because the data is cached on our Python server and does not waste the time and thread resource of the user.
 
-2) Network Manager
+#### 2) Network Manager
 The `Network Manager` is used when a message is passed in from either the socket or the UART port. The core purpose of the `Network Manager` is to manage the node data and overall network information. All the edge nodes update the data of a node whenever there is a new update, independent of the user's request. When new data is received, it updates the node status or the data of the corresponding node.
 
 The `Network Manager` maintains a list of nodes that is globally accessible to all other classes. Each node keeps a deque of (data, time) pairs. The purpose of the deque is to log the history of each data. When the user requests a data update through the `sending connection` and the `Socket Manager` calls a callback function defined by the `Network Manager`, the `Network Manager` will search through the list of nodes and their histories to get the most recent data. Then, it passes the data request or the network request back through the same `sending connection`.
 
 [talking about parsing the address]
 
-3) Uart Manager
+#### 3) Uart Manager
 [talk about scan, read, write]
 
 [talking about start and ending bytes]
@@ -107,17 +107,17 @@ The `Network Manager` maintains a list of nodes that is globally accessible to a
   - should propably include in python code file itself? or introduce in certain degress in readme as well?
 
 ### Utility functions / files
-1)node.py
+#### 1) node.py
 Contain class for edge nodes with the following characteristics and features:
 * Each data store all it's history infomation in a queue with timestamp
 * Supports multiple data types being stored at the same time
 * Supports inforomation lookup and update on specific data type
 
-2)message_opcodes.py
+#### 2) message_opcodes.py
 Contains a structure for current opcodes that can be used. It can be modified and extended.
 
-3)History log folder
-4)Network endianess
+#### 3) History log folder
+####Network endianess
 
 
 
