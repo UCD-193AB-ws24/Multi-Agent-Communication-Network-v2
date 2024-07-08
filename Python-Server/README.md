@@ -61,29 +61,63 @@ just empty for now, easy to add
 ## 3) Python Server Internal Logic (Server Internal Logic Flow)
 
 ### Overview
-  - briefly explain 3 class (OOP design) and Callback Functions Flow
-  - chart (showing 3 objects, logic flows)
-  - mention callback based design
 
-### Main.c
-  - Initialization of Server
-    - luncing each "manager"
-    - attach callbacks
-    - 3 thread, and their role
-  - what variables modifiable, what they controlling
+The python server followers the OOP design and modularizes the core logic into three class. The `Socket Manager` class handles the communication with the users program through device sockets with the provided `Root-Python-API`. The `Network Manager` handles the main Server logic that store and manages the edge node data. The `Uart Manager` class handles the communication with the root esp module through the serial port that runs UART protocol. 
+
+Whenever the `Socket Manager` or the `Uart Manager` received a message, they need the logics in `Network Manager` for processing the message in the next step. The corresponding callback function defined in the `Network Manager` is called to conceptually passed on the logic onto the network manager module. Similarily, when `Network Manager` class is ready to send the processed message through either the socket or UART serial connection, it will call the appropriate callback function defined in either the `Socket Manager` or the `Uart Manager`.
+
+The design of the callback function is to keep the logic contain in the correct module. It's a form of event handler that handles the event that requires borrowing the logic assigned in the other module.
+
+### Python_Server.py
+The purpose of this file is to etup an instance of each of three class with the correct callback function attached. Then it will launches the required threads. The threads in the `Uart Manager` and the `Socket Manager` are dedicated for the socket and the serial port connection. The threads in the `Network Manager` is just for the main thread to keep the program from exiting.
+
+The Following are the adjustible variable for further configuration of the python server:
+- PACKET_SIZE: The maximum size of the packets that can be received through the socket connection.
+- server_socket_port: The port used for binding the python server socket that will be used by the provided API.
+- proxy_server_port: The port used for web socket for hostiing a proxy server, this can be used for the extension of some monitory programs.
+- port: Indicate the type of serial port, in default case '/dev/ttyUSB0' indicates a USB-to-serial adapter.
+- baud_rate: The Baud_rate for the UART used in the connection with the Root esp node
+- log_folder: The path of the file for logging the node datas.
 
 ### Class Objects
-  - manager objects roles
-  - classes provide functions to their associated responsibiity
+1) Socket Manager
+The `Socket Manager` handles the communication between the python server and the user's program through sockets, since both process will be running on the same device. It will open a listening socket and accept incoming connections. Upon receiving a connection, it will first check which type of connection, because there are two types of connections that can be expected. First, the manager need to initiate the socket. Then it needs to launch a thread to keep the socket open for accepting incomming connections.
+
+The first type of connection is the `listening connection`. This listening connection is setup for the user program to listen to the majority of the messages sent from the Python server. The `listening connection` is identified and established through a handshake. When a `listening connection` is not established, all incoming connections will be checked for a handshake before connection. When the `listening connection` failed from the user end and need to be reconnected, this handshake is also very important for the python server to be ready for the reconnection of the `listening connection`. 
+
+The second type of connection is the `sending connection`, which is used by the user program to send message to the python server. Each message will open an individual `sending connection`, which will be closed immediately after receiving the expected response. Any request from the user will be send through this type of the connection. 
+
+In our design, when the client sends any request to the python server, the response can be received in two ways. The response addressing the special custom messages that may need a real-time response from the edge node will be sent back through the `listening connection`, so the `sending connection` of that request can close earlier, freeing up a thread on the users program sooner. Since the provided user API supports event handlers on the  `listening connection`, it is also more flexible for the custom response from the network module to be respond back to the user through the `listening connection`. 
+
+On the other hand, a response addressing a simple data request will be sent back through the `sending connection` that sent the request in the first place, because the data is cached on our Python server and does not waste the time and thread resource of the user.
+
+2) Network Manager
+The `Network Manager` is used when a message is passed in from either the socket or the UART port. The core purpose of the `Network Manager` is to manage the node data and overall network information. All the edge nodes update the data of a node whenever there is a new update, independent of the user's request. When new data is received, it updates the node status or the data of the corresponding node.
+
+The `Network Manager` maintains a list of nodes that is globally accessible to all other classes. Each node keeps a deque of (data, time) pairs. The purpose of the deque is to log the history of each data. When the user requests a data update through the `sending connection` and the `Socket Manager` calls a callback function defined by the `Network Manager`, the `Network Manager` will search through the list of nodes and their histories to get the most recent data. Then, it passes the data request or the network request back through the same `sending connection`.
+
+[talking about parsing the address]
+
+3) Uart Manager
+[talk about scan, read, write]
+
+[talking about start and ending bytes]
 
 ### Detailed Callback Functions Flow
   - should propably include in python code file itself? or introduce in certain degress in readme as well?
 
 ### Utility functions / files
-  - Data Type information file
-  - Opcode files
-  - History log folder
-  - Network endianess
+1)node.py
+Contain class for edge nodes with the following characteristics and features:
+* Each data store all it's history infomation in a queue with timestamp
+* Supports multiple data types being stored at the same time
+* Supports inforomation lookup and update on specific data type
+
+2)message_opcodes.py
+Contains a structure for current opcodes that can be used. It can be modified and extended.
+
+3)History log folder
+4)Network endianess
 
 
 
