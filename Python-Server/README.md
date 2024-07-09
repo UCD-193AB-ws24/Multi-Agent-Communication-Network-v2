@@ -59,31 +59,31 @@
 ## Overview
 
 ### I. Role of Network Server
-The Network Server (python) server as the middle layer between client software and network module. It provids additional application level services, such as storing mesh network status, cache edge device's latest data, additional processing in application level, and etc. The goal of Network Server is to abstracr away the ble mesh network managing from client software and also reduces the latency of data query by caching the latest data update to avoide Round Trip Time to egde node on data query.
+The `Network Server (Python)` serves as the middle layer between `client software` and the `network module`. It provides additional `application-level services` such as storing `mesh network status`, caching `edge device's latest data`, performing additional processing at the application level, and more. The `Network Server` aims to abstract away `BLE mesh network` management from the client software and reduce the latency of data queries by caching the latest data updates to avoid the round trip time to the edge node.
 
-note: Network Server is not required to use network module, communicate directly to module using UART can still acess the network.
+Note: The `Network Server` is not required to use the network module. Direct communication using `UART` with the module can still access the network.
 
 ### II. Message flow Overview
-Serves as middle support layer between client software and network module.(updated to image after)
+Serves as middle support layer between client software and network module. (updated to image after)
 
-1) Operations needs network module. 
-    - ex: sending message to edge
+1) Operations pass down to the network module. 
+    - ex: sending a message to edge
 ```py
   API <---socket---> python server <---uart---> module
 ```
 
-2) Operations executed in server direcly
-    - ex: Get the latest data on certain note
+2) Operations executed in server directly
+    - ex: Get the latest data on a certain note
 ```py
   API <---socket---> python server
 ```
 
 ## Python Server Setup (TB Finish)
  - operating system 
-   - only work in linux for now due to socket and usb port access
- - python lib installaztion (requirement.txt)
+   - only work in Linux for now due to socket and USB port access
+ - python lib installation (requirement.txt)
    - pip install -r requirements.txt
-   - tested working on python 3.10
+   - tested working on Python 3.10
  - command to lunch server
    - run `python3 Python_Server.py` in folder `Multi-agent-Communication-Network/Python-Server`
 
@@ -134,7 +134,7 @@ The protocol to interact with the python server and network module is defined to
 #
 ```
 
-### Network Module Commands
+### I. Network Module Commands
 Commands that are executed in network module, which server will propogate the command to esp32 network module.
 ```py
 ############################## Details #######################################
@@ -172,7 +172,7 @@ Commands that are executed in network module, which server will propogate the co
 #
 ```
 
-### Network Server Commands
+### II. Network Server Commands
 Additional commands that are executed in network server.
 ```py
 ###############################################################################
@@ -269,7 +269,7 @@ Additional commands that are executed in network server.
 #         | 'S' |
 ```
 
-### Defult Message Opcodes
+### III. Defult Message Opcodes
 Application level message type inditification. Most message is delevierd 
 between root-APIs <-> edge APIs, they will not stopat python-server and gets 
 propogate to application level via Socket.
@@ -295,9 +295,11 @@ Python-Server and DON'T get propogate to application level.
 #             accross devices.
 ```
 
-### Network Endianess
+### IV. Network Endianess
   - byte order of addresses used network endianess.
 
+### Example
+ - actual bytes of and command as example
 ------------------- then details in how server works --------------------
 
 ## 3) Python Server Internal Logic (Server Internal Logic Flow)
