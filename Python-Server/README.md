@@ -1,30 +1,92 @@
 # Python Server API
 ===================================
 
-
 ## Table of Contents
-just empty for now, easy to add
+- [Python Server API](#python-server-api)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+    - [I. Role of Network Server](#i-role-of-network-server)
+    - [II. Message flow Overview](#ii-message-flow-overview)
+  - [Python Server Setup (TB Finish)](#python-server-setup-tb-finish)
+  - [1) Python Server Interface design](#1-python-server-interface-design)
+    - [Overview](#overview-1)
+    - [I. establish connection](#i-establish-connection)
+    - [II. main server -\> API socket (rewording needed)](#ii-main-server---api-socket-rewording-needed)
+    - [III. mutiple send API -\> server socket (rewording needed)](#iii-mutiple-send-api---server-socket-rewording-needed)
+  - [2) Protocol (rewording might needed)](#2-protocol-rewording-might-needed)
+    - [Overview](#overview-2)
+    - [I. Network Module Commands](#i-network-module-commands)
+    - [II. Network Server Commands](#ii-network-server-commands)
+    - [III. Defult Message Opcodes](#iii-defult-message-opcodes)
+    - [IV. Network Endianess](#iv-network-endianess)
+    - [Example](#example)
+  - [3) Python Server Internal Logic (Server Internal Logic Flow)](#3-python-server-internal-logic-server-internal-logic-flow)
+    - [Overview](#overview-3)
+    - [Python\_Server.py](#python_serverpy)
+    - [Class Objects](#class-objects)
+      - [1) Socket Manager](#1-socket-manager)
+      - [2) Network Manager](#2-network-manager)
+      - [3) Uart Manager](#3-uart-manager)
+    - [Detailed Callback Functions Flow](#detailed-callback-functions-flow)
+    - [Utility functions / files](#utility-functions--files)
+      - [1) node.py](#1-nodepy)
+      - [2) message\_opcodes.py](#2-message_opcodespy)
+      - [3) History log folder](#3-history-log-folder)
+  - [Overview](#overview-4)
+    - [Socket Manager](#socket-manager)
+    - [Network Manager](#network-manager)
+    - [UART Manager](#uart-manager)
+    - [Data Flow Diagram](#data-flow-diagram)
+  - [Code Structure](#code-structure)
+    - [Python\_Server.py](#python_serverpy-1)
+    - [socket\_manager.py](#socket_managerpy)
+    - [uart\_manager.py](#uart_managerpy)
+    - [network\_manager.py](#network_managerpy)
+    - [node.py](#nodepy)
+    - [message\_opcodes.py](#message_opcodespy)
+    - [web\_socket\_proxy\_server.py](#web_socket_proxy_serverpy)
+  - [Network Commands](#network-commands)
+    - [Overview](#overview-5)
+    - [Network Module Commands](#network-module-commands)
+    - [Network Server Commands](#network-server-commands)
+  - [Defult Message Opcodes](#defult-message-opcodes)
+  - [Uart Signal Encoding Scheme](#uart-signal-encoding-scheme)
+  - [Node Structure (not sure if needed)](#node-structure-not-sure-if-needed)
+  - [References](#references)
+
 
 
 
 ## Overview
 
-### I. Role of Python Server
-  - server as middle layer btw client software with network module, providing additional application level servercie. (Server not required to use network module)
+### I. Role of Network Server
+The `Network Server (Python)` serves as the middle layer between `client software` and the `network module`. It provides additional `application-level services` such as storing `mesh network status`, caching `edge device's latest data`, performing additional processing at the application level, and more. The `Network Server` aims to abstract away `BLE mesh network` management from the client software and reduce the latency of data queries by caching the latest data updates to avoid the round trip time to the edge node.
+
+Note: The `Network Server` is not required to use the network module. Direct communication using `UART` with the module can still access the network.
 
 ### II. Message flow Overview
-  (how it serves as middle support layer between client software and network module)
+Serves as middle support layer between client software and network module. (updated to image after)
+
+1) Operations pass down to the network module. 
+    - ex: sending a message to edge
+```py
   API <---socket---> python server <---uart---> module
+```
 
-### III. Python Server Interaction
- - APIs using socket .....
- - python server using uart port
+2) Operations executed in server directly
+    - ex: Get the latest data on a certain note
+```py
+  API <---socket---> python server
+```
 
-### IV History log feature
-
-## Python Server Setup - How to use python server
- - python lib installaztion (requirement.txt -> setup and configuration basically)
- - operating system (only work in linux for now bc of socket and usb port access)
+## Python Server Setup (TB Finish)
+ - operating system 
+   - only work in Linux for now due to socket and USB port access
+ - python lib installation (requirement.txt)
+   - pip install -r requirements.txt
+   - tested working on Python 3.10
+ - command to lunch server
+   - run `python3 Python_Server.py` in folder `Multi-agent-Communication-Network/Python-Server`
 
 ------------------- then details in how to set up API --------------------
 
@@ -52,19 +114,201 @@ The user will send messages to the Python server through a one-time-use `sending
 When the user sends a message to be delivered to edge nodes, the Python server relays the message to the root node through UART and returns the status. The `sending connection` will be closed after receive this status. When the user sends a message requesting node data or network information, the Python server will return the most recent data stored on the server. Then the `sending connection` will be closed.
 
 ## 2) Protocol (rewording might needed)
- 
+The protocol to interact with the python server and network module is defined to consist `5_byte_network_command | payload` where the payload's format varys based on the command.
+
 ### Overview
-  - Picture (add on)
+  ```py
+############################# Overview #######################################
+#
+# I. Network Command supported by ESP module
+#   (Commands will pass down to and executed in ESP module)
+#   'SEND-' send message without ESP module tracking delivery confirmation
+#   'SENDI' send and tracks message, retransmit up to 3 times with higher TTL
+#   'BCAST' broadcast message
+#   'RST-R' restart root module
+#   'CLEAN' clean and reset the network in persistent memoory
+#   'NINFO' get network info in bytes
+#   'STATE' get node connection state in edge module (only for Edge-API)
+#
+# II. Network Command supported by network server
+#   (Additional Commands will executed network server)
+#   'NINFO' get network info and process to json format
+#   'NSTAT' get node status
+#   '[GET]' get node data
+#   'ACT-C' get active node count
+#
+#   (Additional Commands invoiving network monitor)
+#   'W-LOG' log message to network monitor
+#   'W-RBT' update robot status to network monitor
+#
+```
 
-### Network Command
-  - how to perfom certain operation
+### I. Network Module Commands
+Commands that are executed in network module, which server will propogate the command to esp32 network module.
+```py
+############################## Details #######################################
+#
+# I. Network Module Commands (base commands supported by network module)
+#
+#   1) Messaging Commands ('SEND-', 'SENDI', and 'BCAST')
+#       Delivers an message between devices ( root-api <--> edge device-api )
+#       
+#       => (Sender) Root-client-API / Edge-client-API Sends:
+#         | messaging_command | dst_node_addr |      payload      |
+#         |      5 byte       |     2 byte    |    message bytes  |
+#
+#       <= (Reciver) Edge-client-API / Root-client-API Receives:
+#         | src_node_addr |      payload      |
+#         |     2 byte    |    message bytes  |
+# 
+#       Response to command execution to APIs
+#         'S' or 'F|error_msg_size|error_msg'
+#      
+#   note: for 'BCAST' 2 byte dst_node_addr is just place holder and not getting
+#         used in sendding, put 0 as dst_node_addr is sufficient since it align
+#         with "selecting all node" in other commands.
+#
+#   2) Operation Commands ('RST-R', 'CLEAN')
+#       Order module to perform corresponded operation, no payload needed
+#         | messaging_command |      payload      |
 
-### Message Opcode
-  - app level message type inditification and reserved opcode
+#       Response to command execution to APIs
+#         'S' or 'F|error_msg_size|error_msg'
+#
+#   3) Query Commands ('NINFO', 'STATE') (TB Finish)
+#        (TB Finish)
+#        (TB Finish)
+#
+```
 
-### Network Endianess
-  - byte order of number
+### II. Network Server Commands
+Additional commands that are executed in network server.
+```py
+###############################################################################
+#
+# II. Network Server Commands (additional commands supported by network manager server)
+#
+#   1) 'NINFO' - Overwrites the 'NINFO' from module, process and return network
+#                information.
+#       => Root-client-API Sends:
+#         | net_info_command |
+#         |     5 bytes   |
+#
+#       <= Root-client-API Recives response from Server:
+#         Not Applicable. This command as designed but not implmented since
+#         'NSTAT' command below provides basic network status already, choices
+#         of intersted network infomation data remain determine.
+#
+#
+#   2) 'NSTAT' - Get all node's information
+#       => Root-client-API Sends:
+#         | node_info_command |
+#         |      5 bytes      |
 
+#       <= Root-client-API Recives Json response from Server:
+#         | 'S' success_flag | Json_encoded_data |
+#         |      1 byte      |        n          |
+#
+#        Json Object format:
+#          network_status = {
+#              "node_amount" : 0,
+#              "node_addr_list": [],
+#              "node_status_list": []
+#          }
+#
+#
+#   3) '[GET]' - Get latest data of node/nodes
+#       => Root-client-API Sends:
+#         | get_command | data_ID | node_addr |
+#         |    5 bytes  |    1    |   2 bytes |
+
+#       <= Root-client-API Recives response from Server:
+#         | error_flag | payload |
+#         |   1 byte   |    n    |
+# 
+#        Success:
+#         | 'S' | data_ID | data_length (L) | node_amount (N) | node_addr_0 | data_0 | ... | node_addr_n | data_n | 
+#         |  1  |    1    |        1        |        1        |      2      |    L   | ... |      2      |    L   |
+#
+#        Faild:
+#         | 'F' | length (L) | Error_Message |
+#         |  1  |     1      |       L       |
+#
+#
+#   4) 'ACT-C' - Get amount of active node
+#       => Root-client-API Sends:
+#         | count_command |
+#         |     5 bytes   |
+#
+#       <= Root-client-API Recives response from Server:
+#         | error_flag | payload |
+#         |   1 byte   |    n    |
+# 
+#        Success:
+#         | 'S' | active_node_count | 
+#         |  1  |         1         |
+#
+#        Faild:
+#         Not Applicable
+
+#   # note: commands involing network monitor
+#   5) 'W-LOG' - Log message to network monitor
+#       => Root-client-API Sends:
+#         |  command  | message |
+#         |  5 bytes  |    n    |
+
+#       => Root-client-API Recives:
+#         | 'S' |
+#
+#
+#   6) 'W-RBT' - Update robot status to network monitor
+#      (Beta version, remain more testing)
+#       => Root-client-API Sends:
+#         |  command  | payload |
+#         |  5 bytes  |    n    |
+# 
+#         payload format (python list):
+#           [
+#              { "id": 1, "name": "Robot Node 1", "state": "Active", "node": 'Node-0' },
+#              { "id": 2, "name": "Robot Node 2", "state": "Active", "node": 'Node-1' },
+#              ...
+#           ]
+#
+#       => Root-client-API Recives:
+#         | 'S' |
+```
+
+### III. Defult Message Opcodes
+Application level message type inditification. Most message is delevierd 
+between root-APIs <-> edge APIs, they will not stopat python-server and gets 
+propogate to application level via Socket.
+``` python
+# ******** MESSAGE DEFULT STRUCT *******
+#     Msg_meta        |       Msg_Payload
+#  2_byte_node_addr   |   1_byte_opcode + payload
+# *******************************************
+```
+
+Message with "Special opcodes" from edge APIs will get processed by 
+Python-Server and DON'T get propogate to application level.
+
+``` python
+# ========================== Special Message Opcode ===========================
+# 1) Data Update from edge-API (Special case)
+#    Incoming data update get handler in python server
+#       => Edge-client-API Sends Message:
+#         | 'D' | amount | data_ID | data | ... | data_ID | data |
+#         |  1  |    1   |    1    |   L  | ... |    1    |   L  |
+#
+#       note: data length (L) is pre-defined in "Data_Info.json" and shared 
+#             accross devices.
+```
+
+### IV. Network Endianess
+  - byte order of addresses used network endianess.
+
+### Example
+ - actual bytes of and command as example
 ------------------- then details in how server works --------------------
 
 ## 3) Python Server Internal Logic (Server Internal Logic Flow)
