@@ -1,9 +1,58 @@
 # Python Server API
 ===================================
 
-
 ## Table of Contents
-just empty for now, easy to add
+- [Python Server API](#python-server-api)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+    - [I. Role of Network Server](#i-role-of-network-server)
+    - [II. Message flow Overview](#ii-message-flow-overview)
+  - [Python Server Setup (TB Finish)](#python-server-setup-tb-finish)
+  - [1) Python Server Interface design](#1-python-server-interface-design)
+    - [Overview](#overview-1)
+    - [I. establish connection](#i-establish-connection)
+    - [II. main server -\> API socket (rewording needed)](#ii-main-server---api-socket-rewording-needed)
+    - [III. mutiple send API -\> server socket (rewording needed)](#iii-mutiple-send-api---server-socket-rewording-needed)
+  - [2) Protocol (rewording might needed)](#2-protocol-rewording-might-needed)
+    - [Overview](#overview-2)
+    - [Network Module Commands](#network-module-commands)
+    - [Network Server Commands](#network-server-commands)
+    - [Defult Message Opcodes](#defult-message-opcodes)
+    - [Network Endianess](#network-endianess)
+  - [3) Python Server Internal Logic (Server Internal Logic Flow)](#3-python-server-internal-logic-server-internal-logic-flow)
+    - [Overview](#overview-3)
+    - [Python\_Server.py](#python_serverpy)
+    - [Class Objects](#class-objects)
+      - [1) Socket Manager](#1-socket-manager)
+      - [2) Network Manager](#2-network-manager)
+      - [3) Uart Manager](#3-uart-manager)
+    - [Detailed Callback Functions Flow](#detailed-callback-functions-flow)
+    - [Utility functions / files](#utility-functions--files)
+      - [1) node.py](#1-nodepy)
+      - [2) message\_opcodes.py](#2-message_opcodespy)
+      - [3) History log folder](#3-history-log-folder)
+  - [Overview](#overview-4)
+    - [Socket Manager](#socket-manager)
+    - [Network Manager](#network-manager)
+    - [UART Manager](#uart-manager)
+    - [Data Flow Diagram](#data-flow-diagram)
+  - [Code Structure](#code-structure)
+    - [Python\_Server.py](#python_serverpy-1)
+    - [socket\_manager.py](#socket_managerpy)
+    - [uart\_manager.py](#uart_managerpy)
+    - [network\_manager.py](#network_managerpy)
+    - [node.py](#nodepy)
+    - [message\_opcodes.py](#message_opcodespy)
+    - [web\_socket\_proxy\_server.py](#web_socket_proxy_serverpy)
+  - [Network Commands](#network-commands)
+    - [Overview](#overview-5)
+    - [Network Module Commands](#network-module-commands-1)
+    - [Network Server Commands](#network-server-commands-1)
+  - [Defult Message Opcodes](#defult-message-opcodes-1)
+  - [Uart Signal Encoding Scheme](#uart-signal-encoding-scheme)
+  - [Node Structure (not sure if needed)](#node-structure-not-sure-if-needed)
+  - [References](#references)
+
 
 
 
@@ -52,7 +101,8 @@ Serves as middle support layer between client software and network module.(updat
 
 ### III. mutiple send API -> server socket (rewording needed)
 
-------------------- then details in how to talk to APIs --------------------
+------------------- then details in how to talk to APIs ---------------------
+
 
 ## 2) Protocol (rewording might needed)
 The protocol to interact with the python server and network module is defined to consist `5_byte_network_command | payload` where the payload's format varys based on the command.
