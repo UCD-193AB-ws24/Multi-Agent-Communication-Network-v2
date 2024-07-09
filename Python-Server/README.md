@@ -29,18 +29,27 @@ just empty for now, easy to add
 ------------------- then details in how to set up API --------------------
 
 ## 1) Python Server Interface design
-  - Socket Communication   (API <--> Server communication channle and structure)
+
+Users will communicate with the Python server through the provided API over sockets opened by the Python server. The existence of the Python server provides a layer of encapsulation that guarantees some degree of fail-safe isolation and follows the OOP design principle of modularization. If the user program crashes, it will not affect data gathering on the network server. Similarly, if the network server is down, it does not affect other functionalities of the user program.
+
+The API provides functions to craft messages, create a single `listening connection` to the server socket for receiving messages, and create multiple `sending connections` to the Python server's server socket to send messages. The API also follows the observer design pattern, allowing the user to attach different callback functions to handle different types of messages read from the listening connection. The Python server end will have a dedicated `Socket Manager` class to interface with the user as well.
+
 
 ### Overview
   - chart needed
 
-### I. establish connection
+### I. Establish Connection
+To establish the connection, the server will launch a socket bound to the IP address `localhost` and the port number specified in the `network_manager.py` file. Then, the Python server will launch a thread running a loop to constantly listen for connections. The user will use the provided API to connect to the Python server.
 
-### II. main server -> API socket (rewording needed)
+### II. Server-to-User Communication
+The user will receive messages from the Python server through a persistent `listening connection`. This requires the user to dedicate a thread to maintain this connection. Responses to custom messages that require real-time addressing by the edge node will be sent through this connection. Additionally, other requests from the edge node to the user program will also come through this listening connection.
 
-### III. mutiple send API -> server socket (rewording needed)
+The user API provides an event notification system based on the observer design pattern, allowing the user to subscribe or unsubscribe to a message type with a callback function that handles the corresponding message event.
 
-------------------- then details in how to talk to APIs --------------------
+### III. User-to-Server Communication
+The user will send messages to the Python server through a one-time-use `sending connection`. The sending connection still requires the user to call the provided API sending function on a separate thread. However, this `sending connection` will close after receiving a return message shortly, as the Python server will respond immediately.
+
+When the user sends a message to be delivered to edge nodes, the Python server relays the message to the root node through UART and returns the status. The `sending connection` will be closed after receive this status. When the user sends a message requesting node data or network information, the Python server will return the most recent data stored on the server. Then the `sending connection` will be closed.
 
 ## 2) Protocol (rewording might needed)
  
@@ -92,16 +101,21 @@ In our design, when the client sends any request to the python server, the respo
 On the other hand, a response addressing a simple data request will be sent back through the `sending connection` that sent the request in the first place, because the data is cached on our Python server and does not waste the time and thread resource of the user.
 
 #### 2) Network Manager
-The `Network Manager` is used when a message is passed in from either the socket or the UART port. The core purpose of the `Network Manager` is to manage the node data and overall network information. All the edge nodes update the data of a node whenever there is a new update, independent of the user's request. When new data is received, it updates the node status or the data of the corresponding node.
+The `Network Manager` is used when a message is received from either the socket or the UART port. The core purpose of the `Network Manager` is to manage node data and overall network information. If the message is not related to the network or data, it will be relayed to another manager. The `Network Manager` always checks the 5-byte command of the message first before determine how to process the message.
 
-The `Network Manager` maintains a list of nodes that is globally accessible to all other classes. Each node keeps a deque of (data, time) pairs. The purpose of the deque is to log the history of each data. When the user requests a data update through the `sending connection` and the `Socket Manager` calls a callback function defined by the `Network Manager`, the `Network Manager` will search through the list of nodes and their histories to get the most recent data. Then, it passes the data request or the network request back through the same `sending connection`.
+All the edge nodes update their data independently of user requests whenever there is a new update. When new data is received, it updates the node status or the corresponding node's data.
 
-[talking about parsing the address]
+The `Network Manager` maintains a list of nodes that is globally accessible to all other classes. Each node keeps a deque of (data, time) pairs. The purpose of the deque is to log the history of each data changes. When the user requests a data update through the `sending connection`, the `Socket Manager` calls a callback function defined by the `Network Manager`, the `Network Manager` will search through the list of nodes and their histories to get the most recent data. It then passes the data request or network request back through the same `sending connection`.
+
+When the `Network Manager` receives a message that needs to be relayed to the `Uart Manager`, it will remove the 5-byte command from the message before sending it through UART to the root module. The reason for this is that the 5-byte command is meant to instruct the Python server on what to do with the message, such as one-to-one communication or broadcast messaging.
+
 
 #### 3) Uart Manager
-[talk about scan, read, write]
+The `Uart Manager` primarily focuses on receiving messages from the root module and sending messages to the root module. First, it scans the serial ports for UART ports to establish a connection. Then, it launches a thread dedicated to listening for incoming messages from the root module. When the `Network Manager` needs to send a message, it will do so through the UART port by calling the callback function defined in the `Uart Manager`.
 
-[talking about start and ending bytes]
+Every message sent through the UART serial connection has custom-defined `starting and ending bytes` to signal the beginning and end of a message. When listening for incoming UART communication, it will start parsing a new message upon receiving a `starting byte` and will stop parsing, sending the complete message to the `Network Manager` after reading the `ending byte`.
+
+When sending a message from the Python server to the root module, the `Uart Manager` handles the logic of adding a `starting byte` and an `ending byte`.
 
 ### Detailed Callback Functions Flow
   - should propably include in python code file itself? or introduce in certain degress in readme as well?
@@ -109,15 +123,20 @@ The `Network Manager` maintains a list of nodes that is globally accessible to a
 ### Utility functions / files
 #### 1) node.py
 Contain class for edge nodes with the following characteristics and features:
-* Each data store all it's history infomation in a queue with timestamp
-* Supports multiple data types being stored at the same time
-* Supports inforomation lookup and update on specific data type
+* Each data store all it's history infomation in a dequeue with timestamp
+* Supports multiple data types to be stored at the same time
+* Supports inforomation lookup and update on specific data type on specific node
 
 #### 2) message_opcodes.py
-Contains a structure for current opcodes that can be used. It can be modified and extended.
+The file contains a structure for the current opcodes that are used by default. It can be modified and extended. These opcodes represent the operations edge nodes will perform. They are mainly for readability in the code, to encode human-readable language into bytes for more efficient data transfer.
 
-#### 3) History log folder
-####Network endianess
+This file does not list the commands used by the Python server. The commands used by the Python server are the ones that the Python server will perform, such as data fetching, broadcasting messages to all nodes, or just one-to-one communication with a single edge node.
+
+#### 3) History log file
+The Python server also logs a history of the entire network's data. This can be used for monitoring extensions or tracking in general. In the `network_manager.py`, there is a global variable that specifies the path to the log file. This is for logging the history of the network. In the `node.py` file, there is a function `log_data_hist()` to log an entry for the new updates of a specific data type on a specific node. Every time there is a change in node data, it will be called and appended to the history.
+
+#### 4) Network endianess
+The endianness of the byte representation needs to be consistent to avoid the misrepresentation of data due to differences in device architecture. Endianness inconsistency primarily affects multi-byte numerical values. It is conventional to change the data to big-endian format in network communication. Node address is critical data that requires explicit encoding and decoding with the specified endianness. The `Network Manager.py` provides two functions in addition to the `Network Manager` class to handle the additional decoding and encoding of messages passing through the UART.
 
 
 
