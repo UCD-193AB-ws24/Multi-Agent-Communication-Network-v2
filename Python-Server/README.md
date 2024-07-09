@@ -30,12 +30,13 @@ Serves as middle support layer between client software and network module.(updat
 ```
 
 ## Python Server Setup (TB Finish)
+ - operating system 
+   - only work in linux for now due to socket and usb port access
  - python lib installaztion (requirement.txt)
- - operating system (only work in linux for now bc of socket and usb port access)
- - command to lunch server (python3 Python_Server.py)
- - auto socket connection / reconnection (brefily and link to detile)
- - auto uart connection / reconnection (brefily and link to detile)
- - optional network monitor connection (brefily and link to detile)
+   - pip install -r requirements.txt
+   - tested working on python 3.10
+ - command to lunch server
+   - run `python3 Python_Server.py` in folder `Multi-agent-Communication-Network/Python-Server`
 
 ------------------- then details in how to set up API --------------------
 
