@@ -84,7 +84,7 @@ The protocol to interact with the python server and network module is defined to
 #
 ```
 
-### Network Module Commands
+### I. Network Module Commands
 Commands that are executed in network module, which server will propogate the command to esp32 network module.
 ```py
 ############################## Details #######################################
@@ -122,7 +122,7 @@ Commands that are executed in network module, which server will propogate the co
 #
 ```
 
-### Network Server Commands
+### II. Network Server Commands
 Additional commands that are executed in network server.
 ```py
 ###############################################################################
@@ -219,7 +219,7 @@ Additional commands that are executed in network server.
 #         | 'S' |
 ```
 
-### Defult Message Opcodes
+### III. Defult Message Opcodes
 Application level message type inditification. Most message is delevierd 
 between root-APIs <-> edge APIs, they will not stopat python-server and gets 
 propogate to application level via Socket.
@@ -245,9 +245,11 @@ Python-Server and DON'T get propogate to application level.
 #             accross devices.
 ```
 
-### Network Endianess
+### IV. Network Endianess
   - byte order of addresses used network endianess.
 
+### Example
+ - actual bytes of and command as example
 ------------------- then details in how server works --------------------
 
 ## 3) Python Server Internal Logic (Server Internal Logic Flow)
