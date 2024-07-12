@@ -6,7 +6,7 @@
 # 'NINFO' get network info
 # 'SEND-' send message
 # 'BCAST' broadcast message
-# 'RST-R' reset root module
+# 'RST-E' reset root module
 # 'ACT-C' get active node count
 #
 # '[GET]' get node data
@@ -95,7 +95,7 @@ def broadcast_initialization_and_wait_for_confirm(socket_api, test_name, test_pa
     while len(broadcast_confirmed_node) < node_amount:
         current_time = time.time()
         if current_time - start_time > timeout:
-            print(f"Faild to confirm {test_name} broadcast with edge device")
+            print(f"Faild to confirm {test_name} broadcast with {node_amount} edge device")
             print(f" - {len(broadcast_confirmed_node)} copied broadcast message")
             unsubscribe(opcodes["ACK"], field_test_broadcast_confirm_callback)
             return False
@@ -201,7 +201,7 @@ def connect_N_node(socket_api, node_amount, desinated_node):
         print(f" - Root resetting")
         time.sleep(2) # some buffer time before restart, allow reset work to be finished
         
-        success, _ = send_command(socket_api, "RST-R", 0, b'') 
+        success, _ = send_command(socket_api, "RST-E", 0, b'') 
         if not success:
             continue
         print(f" - Root restarting")
@@ -330,9 +330,9 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
             print(f"failed to decode payload {payload}")
             return
         
-        if pkt_payload[0] != "P":
-            print(f"wrong copy message, not 'P' - ping response")
-            return
+        # if pkt_payload[0] != "P":
+        #     print(f"wrong copy message, not 'P' - ping response")
+        #     return
 
         print(f"      Node-{node_addr} pkt {pkt_number} returned")
         ping_dict[node_addr].append((pkt_number, end_time))
@@ -367,7 +367,6 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
     time.sleep(5) # -----------------------------------------------------------------
     print(" - computing result")
     # calculate and print the result of ping
-    totoal_send_pkt = len(ping_start_time_list)
     total_pkt_loss = 0
     total_avg_rtt = 0
     for i in range(node_amount):
@@ -380,6 +379,7 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
             start_time = ping_start_time_list[node_addr][pkt_num]
             total_time += end_time - start_time
 
+        totoal_send_pkt = len(ping_start_time_list[node_addr])
         pkt_lost = round((totoal_send_pkt - total_return_pkt) / totoal_send_pkt, 2)
         avg_rtt = 0
         if total_return_pkt != 0:
@@ -454,10 +454,35 @@ def data_update_test(socket_api, node_amount, data_size, edge_send_rate, desired
     # 2 byte data size, 1 byte send rate
     test_parameter_byte = b'' + struct.pack('!H', data_size) + struct.pack('b', edge_send_rate % 255)
     
+    data_dict = {}
+    for i in range(node_amount):
+        data_dict[desired_nodes[i]] = [] # list of (pkt_number, arrive_time)
+    #  ------------ callback function ------------
+    def data_update_callback(message: bytes):
+        # need to make sure the current test is still correct, if it's message from a old test, ignore it
+        # if current_test != "Ping_N_Node":
+        #     return
+        nonlocal data_dict
+        
+        arrive_time = time.time()
+        node_addr = parseNodeAddr(message[0:2])
+        opcode = message[2:3] # subscriped opcodes["COPY"]
+        data_amount = message[3]
+        first_data_type = message[4:5]
+        pkt_number = message[5]
+
+        # print(f"      Node-{node_addr} pkt {pkt_number} data update recived")
+        data_dict[node_addr].append((pkt_number, arrive_time))
+    #  ------------ callback function ------------
+    
+    subscribe(opcodes["Data"], data_update_callback)  
         
     while attempts < max_attempts:
         attempts += 1
         print(f"\n===== Starting data_update_test ({data_size} bytes, {edge_send_rate} Hz) on {node_amount} nodes with attempt-{attempts}/{max_attempts} ===== ")
+        
+        for i in range(node_amount):
+            data_dict[desired_nodes[i]] = [] # list of (pkt_number, arrive_time)
         
         # Test Initialization
         success = test_initialization(socket_api, test_name, test_parameter_byte, node_amount, broadcast_timeout, desired_nodes)
@@ -476,18 +501,24 @@ def data_update_test(socket_api, node_amount, data_size, edge_send_rate, desired
             continue
 
         # compute rough pkt loss
+        max_seq_num = 0
         for node in desired_nodes:
-            success, response = send_command(socket_api, "[GET]", node, b'\x00')
-            if not success:
-                print(response)
-                continue
+            # print(data_dict[node])
+            node_max = data_dict[node][-1][0] - data_dict[node][0][0]
+            if max_seq_num < node_max:
+                max_seq_num = node_max
 
-            print(f"Node-{node}: {response}")
+        for node in desired_nodes:
+            data_pkt_loss = 1 - round(len(data_dict[node]) / (max_seq_num + 1), 2)
+            data_pkt_loss *= 100
+            print(f"  Node-{node} pkt loss: {data_pkt_loss}%")
             
         # finished the test on current attempt
         attempts = max_attempts + 1
         break
-        
+
+    
+    unsubscribe(opcodes["Data"], data_update_callback)  
     # test finished
     if attempts == max_attempts + 1:
         current_time = time.time()

@@ -130,7 +130,7 @@ class Network_Manager():
                 print(f"Error updating node:{node_addr} payload'{msg_payload}'")
                 return
             
-            # print(f"data_ID:{data_ID},data_Name:{data_ID}, data_len:{data_len}") # [Testing Log]
+            print(f"data_ID:{data_ID}, data_len:{data_len}") # [Testing Log]
             
             data = msg_payload[data_start + data_id_len: data_start + data_id_len + data_len]
         
@@ -138,7 +138,7 @@ class Network_Manager():
             # print(f"[Node] addr-{node_addr} added {data_ID} data") # [Testing Log] 
             data_start += data_id_len +  data_len
         
-        print("done updating node:", node_addr)
+        print("done updating node:", node_addr, "data ID:", data_ID)
             
 # ============================= Socket Callback Logics =================================
     def callback_socket(self, data):
@@ -236,7 +236,8 @@ class Network_Manager():
         if op_code == opcodes["Data"]: # Data update
             self.updateNodeData(node_addr, payload)
             self.web_log(f"[D] recived update from Node-{node_addr}")
-            return b'S'
+            return self.socket_sent(data)
+            # return b'S'
             
         if op_code == opcodes["Net Info"]: # Network Information
             return b'S'
