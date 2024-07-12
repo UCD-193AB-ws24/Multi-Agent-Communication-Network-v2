@@ -364,7 +364,7 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
     
     # leave the timeout_time for the last packet to return
     print(" - End of sending Ping request, Waiting for last response packet")
-    time.sleep(5) # -----------------------------------------------------------------
+    time.sleep(15) # -----------------------------------------------------------------
     print(" - computing result")
     # calculate and print the result of ping
     totoal_send_pkt = len(ping_start_time_list)
@@ -380,13 +380,17 @@ def ping_N_node(socket_api, node_amount, data_size, send_rate, duration, desired
             start_time = ping_start_time_list[node_addr][pkt_num]
             total_time += end_time - start_time
 
-        pkt_lost = round((totoal_send_pkt - total_return_pkt) / totoal_send_pkt, 2)
+        totoal_send_pkt = len(ping_start_time_list[node_addr])
+        pkt_lost = round((totoal_send_pkt - total_return_pkt) / totoal_send_pkt, 2) * 100
         avg_rtt = 0
         if total_return_pkt != 0:
             avg_rtt = round(total_time / total_return_pkt, 3)
         print(f" Node-{node_addr}, pkt_loss: {pkt_lost}%, AVG_RTT: {avg_rtt}")
+        print(f" SENT-{totoal_send_pkt}, Return-{total_return_pkt}")
         total_pkt_loss += pkt_lost
         total_avg_rtt += avg_rtt
+        
+        test_termination(socket_api)
 
     total_pkt_loss /= node_amount
     total_avg_rtt /= node_amount

@@ -45,18 +45,18 @@ def main():
     # full_restart_root(socket_api)
     time.sleep(3)
 
-    desinated_node = [5, 6] #, 7, 8, 9]
+    desinated_node = [5] #, 7, 8, 9]
     node_amount = len(desinated_node) # control how many node testing
 
     # 1) Data Update Tester
-    data_update_test(socket_api, node_amount, 20, 1, desinated_node)
+    # data_update_test(socket_api, node_amount, 20, 1, desinated_node)
     
     
     # 2) Round Trip Time Tester
     RTT_test_parameters = [] # (data_size, send_rate Hz, duration)
-    RTT_test_parameters.append((10, 0.5, 10))
-    # RTT_test_parameters.append((20, 0.5, 10))
-    # RTT_test_parameters.append((40, 0.5, 60))
+    # RTT_test_parameters.append((10, 1, 20))
+    RTT_test_parameters.append((20, 1, 20))
+    RTT_test_parameters.append((40, 1, 20))
 
     print("testing:", desinated_node)
     for i in range(len(RTT_test_parameters)):
