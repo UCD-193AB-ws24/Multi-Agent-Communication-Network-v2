@@ -16,7 +16,7 @@ The project aims to provide an `easily deployable local network` with a `network
 
 Lastly, since ESP32 BLE Mesh is still a relatively new technology, there are few examples of it with the esp-idf framework. We aim to document the firmware code as a potential reference for others to advance their understanding and implementation of BLE Mesh with ESP32 chip and esp-idf.
 
-## Project Structure ` ========== (need review) ========== `
+## Project Structure `====`
 Our whole project structure can be summarized as below:
 ![Screenshot 2024-06-23 210852](https://github.com/codecultivatorscrew/Multi-agent-Communication-Network/assets/54468493/ef895f72-a9a2-44a4-9a32-3ceffc56a1ea)
 
