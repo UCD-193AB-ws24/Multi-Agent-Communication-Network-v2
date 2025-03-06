@@ -140,5 +140,4 @@ class Socket_Manager():
             return b'F' + "No socket connected".encode()
             # implment attemps of reconnection
         
-        
         return b'S'

@@ -1,10 +1,11 @@
+# Retired this class, as it is not needed anymore. The web socket server is implemented in web client backend.
+
 import asyncio
 import websockets
 import json
 import random
 import time
 import threading
-from websocket_server import WebsocketServer
 import socket
 
 class Web_Socket_Manager:
