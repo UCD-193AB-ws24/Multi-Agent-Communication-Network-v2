@@ -1,0 +1,18 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -pedantic -std=c11
+
+SRCS = main.c socket.c
+OBJS = $(SRCS:.c=.o)
+
+EXEC = main
+
+all: $(EXEC)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(EXEC): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $(EXEC)
+
+clean:
+	rm -f $(OBJS) $(EXEC)
