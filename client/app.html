@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #updates { margin-top: 20px; }
+        .update { margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Network Dashboard</h1>
+    <div id="updates"></div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:7654');
+
+        ws.onopen = () => {
+            console.log('Connected to WebSocket server');
+        };
+
+        ws.onmessage = (event) => {
+            const update = JSON.parse(event.data);
+            const updatesDiv = document.getElementById('updates');
+            const updateDiv = document.createElement('div');
+            updateDiv.className = 'update';
+            updateDiv.textContent = JSON.stringify(update, null, 2);
+            updatesDiv.prepend(updateDiv);
+        };
+
+        ws.onclose = () => {
+            console.log('Disconnected from WebSocket server');
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    </script>
+</body>
+</html>
