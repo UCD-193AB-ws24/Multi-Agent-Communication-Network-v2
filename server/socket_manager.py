@@ -29,6 +29,9 @@ class SocketManager():
     def run(self):
         self.socket_thread = threading.Thread(target=self.server_listening_thread, args=(), daemon=True)
         self.socket_thread.start()
+    
+    def attach_callback(self, callback_func):
+        self.callback_func = callback_func
                 
     def connect_send_socket(self):
         self.server_socket.listen(1)
@@ -98,9 +101,6 @@ class SocketManager():
         response_bytes = self.callback_func(data)
         client_socket.send(response_bytes)
         client_socket.close()
-    
-    def attach_callback(self, callback_func):
-        self.callback_func = callback_func
         
     def send_data(self, data): # -------------------- TB Finish --------------------------
         print("sending data")

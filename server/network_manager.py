@@ -1,5 +1,4 @@
 import struct
-import time
 import json
 import asyncio
 import random
@@ -111,8 +110,15 @@ class NetworkManager:
             network_status_json = json.dumps(network_status)
             network_status_bytes = network_status_json.encode('utf-8')
             return b'S' + network_status_bytes
+
+        if command == "RST-R":
+            for node in self.node_list:
+                node.status = Node_Status.Inactive
+            self.uart_sent(data)
+            self.update_dashboard({"event": "network_reset"})
+            return b'S'
         
-        return b'F'
+        return self.uart_sent(data)
 
     def callback_uart(self, data):
         if not data or len(data) < 3:
