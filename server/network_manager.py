@@ -46,6 +46,9 @@ class NetworkManager:
         update = {"event": "node_added", "node": node.__dict__}
         self.update_dashboard(update)
         return node
+    
+    def get_active_nodes(self):
+        return list(filter(lambda node: node.status == Node_Status.Active, self.node_list))
 
     def update_node_data(self, node_addr: int, msg_payload: bytes):
         node = self.node_dict.get(node_addr)
@@ -160,67 +163,73 @@ class NetworkManager:
 
     def get_node_data(self, data_ID, node_addr: int):
         response = b'S' + data_ID.encode()
-        
+    
         if node_addr == 0:
             active_nodes = self.get_active_nodes()
+            print(f"Active nodes: {active_nodes}")
             data_len = 0
-            
+        
             for node in active_nodes:
                 hasData, data_len = node.getDataLength(data_ID)
                 if hasData:
                     response += data_len.to_bytes(1, byteorder='little')
                     break
-                
+            
             size_n = 0
             total_data_bytes = b''
-            
+        
             for node in active_nodes:
                 hasData, data = node.getDataBytes(data_ID)
-                
+            
                 if hasData:
                     size_n += 1
                     total_data_bytes += encodeNodeAddr(node.address)
                     total_data_bytes += data
-                    
+                
             response += size_n.to_bytes(1, byteorder='little')
             response += total_data_bytes
             return response
-        
+    
         elif node_addr != 0:
             node = self.node_dict.get(node_addr)
-            
+        
             if node is None:
                 error = "Node Not Found"
                 response = b'F' + len(error).to_bytes(1, byteorder='little') + error.encode()
                 return response
-            
+        
             response += b'\x01'
             node = self.node_list[0]
             hasData, data = node.getDataBytes(data_ID)
-            
+        
             if not hasData:
                 error = "Data Type Not Found"
                 response = b'F' + len(error).to_bytes(1, byteorder='little') + error.encode()
                 return response
-            
+        
             response += encodeNodeAddr(node.address)
             response += data
             return response
 
     async def simulate_updates(self):
         while True:
-            # Generate random update data
-            update = {
-                "event": random.choice(["node_added", "node_updated", "node_connected"]),
-                "node": {
-                    "name": f"Node{random.randint(1, 10)}",
-                    "address": random.randint(1, 100),
-                    "uuid": f"uuid-{random.randint(1, 100)}",
-                    "status": random.choice(["Active", "Inactive"]),
-                    "data": {f"data{random.randint(1, 5)}": random.randint(1, 100)}
-                }
-            }
+            # Directly call the get_node_data method to request data from the root module
+            data_ID = "1" # Replace with the actual data ID you want to request
+            node_addr = 0  # Root module address
+            print(f"Simulating update for node-{node_addr}")
+    
+            # Call the get_node_data method
+            response = self.get_node_data(data_ID, node_addr)
+            print(response)
+            
+            # Change to json
+            response_json = response.decode('utf-8')
+            print(response_json)
+            
+            # Update the dashboard
+            update = {"event": "data_update", "data": response_json}
             self.update_dashboard(update)
+        
             await asyncio.sleep(2)
 
 # Other Utility Functions

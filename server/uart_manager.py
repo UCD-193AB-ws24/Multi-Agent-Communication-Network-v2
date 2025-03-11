@@ -52,8 +52,10 @@ class UartManager:
         while True:
             if self.serial_connection is not None:
                 self.is_serial_connected = True
+                print(f"{datetime.now()} - Listening for UART messages")
                 try:
                     uart_message = self.uart_read_message()
+                    print(f"{datetime.now()} - Received UART message: {uart_message}")
                     self.uart_event_handler(uart_message)
                     continue  # Successfully read one message
                 except serial.SerialException as e:
@@ -80,6 +82,7 @@ class UartManager:
         data = b''
         while True:
             if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
+                print(f"{datetime.now()} - Reading data from serial port")
                 byte = self.serial_connection.read() # Read and decode the data
                 # print(byte, end="-")
                 if byte == UART_START:
