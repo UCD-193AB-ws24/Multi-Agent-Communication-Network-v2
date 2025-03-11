@@ -232,6 +232,7 @@ class NetworkManager:
         
             await asyncio.sleep(2)
 
+
 # Other Utility Functions
 def encodeNodeAddr(node_addr: int) -> bytes:
     return struct.pack('!H', node_addr)
