@@ -258,23 +258,23 @@ class NetworkManager:
         
         return b'S'
     
-    # async def simulate_updates(self):
-    #     while True:
-    #         # Generate random latitude and longitude within specified range
-    #         latitude = round(random.uniform(38.539466, 38.543397), 6)
-    #         longitude = round(random.uniform(-121.777816, -121.769394), 6)
+    async def simulate_updates(self):
+        while True:
+            # Generate random latitude and longitude within specified range
+            latitude = round(random.uniform(38.539466, 38.543397), 6)
+            longitude = round(random.uniform(-121.777816, -121.769394), 6)
 
-    #         # Generate random update data
-    #         update = {
-    #             "event": random.choice(["node_added", "node_updated", "node_connected"]),
-    #             "node": {
-    #                 "name": f"Node{random.randint(1, 10)}",
-    #                 "longitude": longitude,
-    #                 "latitude": latitude,
-    #                 "uuid": f"uuid-{random.randint(1, 100)}",
-    #                 "status": random.choice(["Active", "Inactive"]),
-    #                 "data": {f"data{random.randint(1, 5)}": random.randint(1, 100)}
-    #             }
-    #         }
-    #         self.update_dashboard(update)
-    #         await asyncio.sleep(2)
+            # Generate random update data
+            update = {
+                "event": random.choice(["node_added", "node_updated", "node_connected"]),
+                "node": {
+                    "name": f"Node{random.randint(1, 10)}",
+                    "longitude": longitude,
+                    "latitude": latitude,
+                    "uuid": f"uuid-{random.randint(1, 100)}",
+                    "status": random.choice(["Active", "Inactive"]),
+                    "data": {f"data{random.randint(1, 5)}": random.randint(1, 100)}
+                }
+            }
+            self.update_dashboard(update)
+            await asyncio.sleep(2)

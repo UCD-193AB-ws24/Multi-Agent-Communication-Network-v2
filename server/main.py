@@ -17,28 +17,28 @@ BAUD_RATE = 115200
 FLASK_PORT = 5000  # Flask shutdown server port
 
 # # Flask app for shutdown
-# app = Flask(__name__)
+app = Flask(__name__)
 
-# @app.route("/shutdown", methods=["POST"])
-# def shutdown():
-#     """Properly terminates the Python server."""
-#     print("Shutdown request received...")
+@app.route("/shutdown", methods=["POST"])
+def shutdown():
+    """Properly terminates the Python server."""
+    print("Shutdown request received...")
 
-#     # Try Werkzeug shutdown method first
-#     func = request.environ.get("werkzeug.server.shutdown")
-#     if func:
-#         print("Shutting down using Werkzeug server shutdown method...")
-#         func()  # Gracefully shuts down Flask
-#         return "Server shutting down...", 200
+    # Try Werkzeug shutdown method first
+    func = request.environ.get("werkzeug.server.shutdown")
+    if func:
+        print("Shutting down using Werkzeug server shutdown method...")
+        func()  # Gracefully shuts down Flask
+        return "Server shutting down...", 200
 
-#     # If Werkzeug shutdown fails, use os.kill
-#     print("Shutting down using os.kill...")
-#     os.kill(os.getpid(), signal.SIGTERM)
-#     return "Server shutting down...", 200
+    # If Werkzeug shutdown fails, use os.kill
+    print("Shutting down using os.kill...")
+    os.kill(os.getpid(), signal.SIGTERM)
+    return "Server shutting down...", 200
 
-# def run_flask():
-#     """Run Flask shutdown server in a separate thread."""
-#     app.run(host="0.0.0.0", port=FLASK_PORT, use_reloader=False)
+def run_flask():
+    """Run Flask shutdown server in a separate thread."""
+    app.run(host="0.0.0.0", port=FLASK_PORT, use_reloader=False)
 
 async def main():
     # Initialize the network components
@@ -58,11 +58,11 @@ async def main():
     websocket_server.run()
 
     # Start simulating updates
-    # asyncio.create_task(net_manager.simulate_updates())
+    asyncio.create_task(net_manager.simulate_updates())
 
     # Start Flask shutdown server in a separate thread
-    # flask_thread = Thread(target=run_flask, daemon=True)
-    # flask_thread.start()
+    flask_thread = Thread(target=run_flask, daemon=True)
+    flask_thread.start()
 
     try:
         while True:
