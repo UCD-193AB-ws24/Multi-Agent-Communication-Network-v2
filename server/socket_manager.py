@@ -103,10 +103,8 @@ class SocketManager():
         client_socket.close()
         
     def send_data(self, data): # -------------------- TB Finish --------------------------
-        print("sending data")
         if self.send_socket != None:
             # socket.sento(bytes, addr)
-            print("send_data called")
             try:
                 self.send_socket.sendall(data)
             except socket.error as e:

@@ -82,7 +82,6 @@ class UartManager:
         data = b''
         while True:
             if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
-                print(f"{datetime.now()} - Reading data from serial port")
                 byte = self.serial_connection.read() # Read and decode the data
                 # print(byte, end="-")
                 if byte == UART_START:

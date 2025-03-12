@@ -1,12 +1,10 @@
 import struct
 import json
 import asyncio
-import random
 from node import Node, Node_Status
 from datetime import datetime
 from message_opcodes import opcodes
-
-shared_node_list = []
+import random
 
 def get_data_len_by_id(data_id):
     with open('Data_Info.json', 'r') as file:
@@ -19,32 +17,33 @@ def get_data_len_by_id(data_id):
     print(f"[Error] Undefined data type data_id:{data_id}")
     return -1
 
+def encodeNodeAddr(node_addr: int) -> bytes:
+    return struct.pack('!H', node_addr)
+
+def parseNodeAddr(addr_bytes: bytes) -> int:
+    return struct.unpack('!H', addr_bytes)[0]
+
 class NetworkManager:
     def __init__(self):
-        global shared_node_list
-        self.node_list = shared_node_list
-        self.current_node = None
+        self.node_list = []
         self.node_dict = {}
-        self.socket_sent = None
-        self.uart_sent = None
-        self.web_sent = None
+        self.send_socket = None
+        self.send_uart = None
+        self.send_web = None
             
-    def attach_callback(self, socket_sent, uart_sent, web_sent):
-        self.socket_sent = socket_sent
-        self.uart_sent = uart_sent
-        self.web_sent = web_sent
+    def attach_callback(self, send_socket, send_uart, send_web):
+        self.send_socket = send_socket
+        self.send_uart = send_uart
+        self.send_web = send_web
 
     def update_dashboard(self, update):
-        self.web_sent(update)
+        self.send_web(update)
 
     def add_node(self, name: str, address: int, uuid: bytes) -> Node:
         node = Node(name, address, uuid)
         self.node_list.append(node)
         self.node_dict[address] = node
-        print(f"Node-{address} added")
-        
-        update = {"event": "node_added", "node": node.__dict__}
-        self.update_dashboard(update)
+        print(f"{datetime.now()} - Node-{address} with UUID:{uuid} added")
         return node
     
     def get_active_nodes(self):
@@ -75,9 +74,7 @@ class NetworkManager:
             node.storeData(data_ID, data)
             data_start += data_id_len + data_len
 
-        print("done updating node:", node_addr)
-        update = {"event": "node_updated", "node": node.__dict__}
-        self.update_dashboard(update)
+        print(f"{datetime.now()} - Node-{node_addr} updated")
     
     def get_node_data(self, data_ID, node_addr: int):
         response = b'S' + data_ID.encode()
@@ -137,14 +134,11 @@ class NetworkManager:
             offset += 2
             node_uuid = payload[offset:offset + 16]
             offset += 16
-            self.add_node("Node", node_addr, node_uuid)
-            print(f"Node-{node_addr} with UUID {node_uuid.hex()} added")
-
-    async def get_network_info(self):
-        while True:
-            self.uart_sent(b'NINFO')
-            self.update_dashboard({"event": "data_request"})
-            await asyncio.sleep(2)
+            
+            if node_addr in self.node_dict:
+                print(f"Node-{node_addr} already exists")
+            else:
+                self.add_node("Node", node_addr, node_uuid)
 
     def callback_socket(self, data):
         if not data or len(data) < 5:
@@ -161,41 +155,33 @@ class NetworkManager:
             print("[Socket] can't parse command", command)
             return b'F'
         
-        # Commands handled by Network Manager
         if command == "[GET]": # Returns the data from the node specified
             node_addr = parseNodeAddr(payload[0:2])
             data_ID = payload[2:5].decode('utf-8')
             return self.get_node_data(data_ID, node_addr)
-        
-        if command == "ACT-C": # Returns active nodes count
+        elif command == "ACT-C": # Returns active nodes count
             count = len(self.get_active_nodes()) % 255
             return b'S' + str(count).encode('utf-8')
-        
-        if command == "NSTAT": # Returns network status
+        elif command == "NINFO":
+            self.send_uart(b'NINFO')
             network_status = {
                 "node_amount": len(self.node_list),
                 "node_addr_list": list(map(lambda node: node.address, self.node_list)),
                 "node_status_list": list(map(lambda node: 1 if node.status == Node_Status.Active else 0, self.node_list))
             }
-            
             network_status_json = json.dumps(network_status)
             network_status_bytes = network_status_json.encode('utf-8')
             return b'S' + network_status_bytes
-        
-        # Commands handled by ESP root module
-        if command == "NINFO": 
-            self.uart_sent(b'NINFO')
-            # self.update_dashboard({"event": "data_request"})
+        elif command == "RST-R":
+            for node in self.node_list:
+                node.status = Node_Status.Disconnect
+            self.send_uart(data)
+            return b'S'
+        elif command == "SEND-" or command == "BCAST":
+            self.send_uart(data)
             return b'S'
 
-        if command == "RST-R":
-            for node in self.node_list:
-                node.status = Node_Status.Inactive
-            self.uart_sent(data)
-            # self.update_dashboard({"event": "network_reset"})
-            return b'S'
-        
-        return self.uart_sent(data)
+        return b'F' + "Unknown Command".encode()
 
     def callback_uart(self, data):
         if not data or len(data) < 3:
@@ -211,36 +197,42 @@ class NetworkManager:
         
         if "Data" in opcodes and op_code == opcodes["Data"]:
             self.update_node_data(node_addr, payload)
-            print(f"Node-{node_addr} updated")
-            return b'S'
-        
-        if op_code == opcodes["Net Info"]:
+        elif op_code == opcodes["Net Info"]:
             self.handle_network_info(payload)
-            return b'S'
-        
-        if "Node Info" in opcodes and op_code == opcodes["Node Info"]:
+        elif "Node Info" in opcodes and op_code == opcodes["Node Info"]:
             node_uuid = payload
             node_list = list(filter(lambda node: node.address == node_addr, self.node_list))
-            
             if len(node_list) <= 0:
                 node = self.add_node("Node", node_addr, node_uuid)
             else:
                 node = node_list[0]
                 node.uuid = node_uuid
                 node.status = Node_Status.Active
-                
-            print(f"Node-{node_addr} connected")
-            
-            update = {"event": "node_connected", "node": node.__dict__}
-            self.update_dashboard(update)
-            
-            return b'S'
+        else:
+            return b'F' + "Unknown Opcode".encode()
         
-        return self.socket_sent(data)
+        update = {"event": "node_connected", "node": node.__dict__}
+        self.update_dashboard(update)
+        
+        return b'S'
+    
+    async def simulate_updates(self):
+        while True:
+            # Generate random latitude and longitude within specified range
+            latitude = round(random.uniform(38.539466, 38.543397), 6)
+            longitude = round(random.uniform(-121.777816, -121.769394), 6)
 
-# Other Utility Functions
-def encodeNodeAddr(node_addr: int) -> bytes:
-    return struct.pack('!H', node_addr)
-
-def parseNodeAddr(addr_bytes: bytes) -> int:
-    return struct.unpack('!H', addr_bytes)[0]
+            # Generate random update data
+            update = {
+                "event": random.choice(["node_added", "node_updated", "node_connected"]),
+                "node": {
+                    "name": f"Node{random.randint(1, 10)}",
+                    "longitude": longitude,
+                    "latitude": latitude,
+                    "uuid": f"uuid-{random.randint(1, 100)}",
+                    "status": random.choice(["Active", "Inactive"]),
+                    "data": {f"data{random.randint(1, 5)}": random.randint(1, 100)}
+                }
+            }
+            self.update_dashboard(update)
+            await asyncio.sleep(2)
