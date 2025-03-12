@@ -143,11 +143,6 @@ class NetworkManager:
     # TODO: Handle Direct Forwarding Info will update the node list with the direct forwarding paths
     # Update node list with another attribute for their direct forwarding paths
     def handle_direct_forwarding_info(self, payload):
-        # Temporarily print the payload
-        # Decoded date: b'\x04\x02\x12\x34\x56\x78\x9A\xBC\xDE\xF0'
-        # Number of paths: 2
-        # Path 0: 0x1234 -> 0x5678
-        # Path 1: 0x9ABC -> 0xDEF0
         if len(payload) < 2:
             print("Invalid data length")
             return
@@ -167,19 +162,15 @@ class NetworkManager:
                 print("Invalid data length for paths")
                 return
 
-        path_origin = int.from_bytes(payload[index:index+2], 'big')
-        path_target = int.from_bytes(payload[index+2:index+4], 'big')
-        index += 4
+            path_origin = int.from_bytes(payload[index:index+2], 'big')
+            path_target = int.from_bytes(payload[index+2:index+4], 'big')
+            index += 4
 
-        print(f"Path {i}: 0x{path_origin:04X} -> 0x{path_target:04X}")
+            print(f"Path {i}: 0x{path_origin:04X} -> 0x{path_target:04X}")
 
-        return b'F' + "Not Implemented".encode()
+        return b'S'
 
     def callback_socket(self, data):
-        if not data or len(data) < 5:
-            print(f"Error: Received empty or malformed data: {data}")
-            return b'F'
-        
         command = data[0:5]
         payload = data[5:]
         print(f"{datetime.now()} - Received Socket data: {data}")
@@ -207,7 +198,7 @@ class NetworkManager:
             network_status_json = json.dumps(network_status)
             network_status_bytes = network_status_json.encode('utf-8')
             return b'S' + network_status_bytes
-        elif command == "RST-R":
+        elif command == "RST-R" or command == "CLEAN":
             for node in self.node_list:
                 node.status = Node_Status.Disconnect
             self.send_uart(data)
@@ -215,8 +206,8 @@ class NetworkManager:
         elif command == "SEND-" or command == "BCAST":
             self.send_uart(data)
             return b'S'
-        elif command == "DFINFO":
-            self.send_uart(b'DFINFO')
+        elif command == "DFINF":
+            self.send_uart(b'DFINF')
             return b'S'
 
         return b'F' + "Unknown Command".encode()
