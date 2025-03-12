@@ -78,89 +78,7 @@ class NetworkManager:
         print("done updating node:", node_addr)
         update = {"event": "node_updated", "node": node.__dict__}
         self.update_dashboard(update)
-
-    def callback_socket(self, data):
-        if not data or len(data) < 5:
-            print(f"Error: Received empty or malformed data: {data}")
-            return b'F'
-        
-        command = data[0:5]
-        payload = data[5:]
-        print(f"\n[Socket-CB]: {command} {payload}")
-        
-        try:
-            command = command.decode('utf-8')
-        except UnicodeDecodeError:
-            print("[Socket] can't parse command", command)
-            return b'F'
-        
-        if command == "[GET]": # Get the data from the node
-            node_addr = parseNodeAddr(payload[0:2])
-            data_ID = payload[2:5].decode('utf-8')
-            return self.get_node_data(data_ID, node_addr)
-        
-        if command == "ACT-C": # Get active nodes count
-            count = len(self.get_active_nodes()) % 255
-            return b'S' + str(count).encode('utf-8')
-        
-        if command == "NSTAT": # Get network status
-            network_status = {
-                "node_amount": len(self.node_list),
-                "node_addr_list": list(map(lambda node: node.address, self.node_list)),
-                "node_status_list": list(map(lambda node: 1 if node.status == Node_Status.Active else 0, self.node_list))
-            }
-            
-            network_status_json = json.dumps(network_status)
-            network_status_bytes = network_status_json.encode('utf-8')
-            return b'S' + network_status_bytes
-
-        if command == "RST-R":
-            for node in self.node_list:
-                node.status = Node_Status.Inactive
-            self.uart_sent(data)
-            self.update_dashboard({"event": "network_reset"})
-            return b'S'
-        
-        return self.uart_sent(data)
-
-    def callback_uart(self, data):
-        if not data or len(data) < 3:
-            print(f"Error: Received empty or malformed data: {data}")
-            return b'F'
-        
-        node_addr_bytes = data[0:2]
-        op_code = data[2:3]
-        payload = data[3:]
-        print(f"\n[UART-CB]: {node_addr_bytes} {op_code} {payload}")
-        
-        node_addr = parseNodeAddr(node_addr_bytes)
-        
-        if "Data" in opcodes and op_code == opcodes["Data"]:
-            self.update_node_data(node_addr, payload)
-            print(f"Node-{node_addr} updated")
-            return b'S'
-        
-        if op_code == opcodes["Net Info"]:
-            return b'S'
-        
-        if "Node Info" in opcodes and op_code == opcodes["Node Info"]:
-            node_uuid = payload
-            node_list = list(filter(lambda node: node.address == node_addr, self.node_list))
-            
-            if len(node_list) <= 0:
-                node = self.add_node("Node", node_addr, node_uuid)
-            else:
-                node = node_list[0]
-                node.uuid = node_uuid
-                node.status = Node_Status.Active
-                
-            print(f"Node-{node_addr} connected")
-            update = {"event": "node_connected", "node": node.__dict__}
-            self.update_dashboard(update)
-            return b'S'
-        
-        return self.socket_sent(data)
-
+    
     def get_node_data(self, data_ID, node_addr: int):
         response = b'S' + data_ID.encode()
     
@@ -210,28 +128,115 @@ class NetworkManager:
             response += encodeNodeAddr(node.address)
             response += data
             return response
-
-    async def simulate_updates(self):
-        while True:
-            # Directly call the get_node_data method to request data from the root module
-            data_ID = "1" # Replace with the actual data ID you want to request
-            node_addr = 0  # Root module address
-            print(f"Simulating update for node-{node_addr}")
     
-            # Call the get_node_data method
-            response = self.get_node_data(data_ID, node_addr)
-            print(response)
-            
-            # Change to json
-            response_json = response.decode('utf-8')
-            print(response_json)
-            
-            # Update the dashboard
-            update = {"event": "data_update", "data": response_json}
-            self.update_dashboard(update)
-        
+    def handle_network_info(self, payload):
+        batch_size = payload[0]
+        offset = 1
+        for _ in range(batch_size):
+            node_addr = struct.unpack('!H', payload[offset:offset + 2])[0]
+            offset += 2
+            node_uuid = payload[offset:offset + 16]
+            offset += 16
+            self.add_node("Node", node_addr, node_uuid)
+            print(f"Node-{node_addr} with UUID {node_uuid.hex()} added")
+
+    async def get_network_info(self):
+        while True:
+            self.uart_sent(b'NINFO')
+            self.update_dashboard({"event": "data_request"})
             await asyncio.sleep(2)
 
+    def callback_socket(self, data):
+        if not data or len(data) < 5:
+            print(f"Error: Received empty or malformed data: {data}")
+            return b'F'
+        
+        command = data[0:5]
+        payload = data[5:]
+        print(f"{datetime.now()} - Received Socket data: {data}")
+        
+        try:
+            command = command.decode('utf-8')
+        except UnicodeDecodeError:
+            print("[Socket] can't parse command", command)
+            return b'F'
+        
+        # Commands handled by Network Manager
+        if command == "[GET]": # Returns the data from the node specified
+            node_addr = parseNodeAddr(payload[0:2])
+            data_ID = payload[2:5].decode('utf-8')
+            return self.get_node_data(data_ID, node_addr)
+        
+        if command == "ACT-C": # Returns active nodes count
+            count = len(self.get_active_nodes()) % 255
+            return b'S' + str(count).encode('utf-8')
+        
+        if command == "NSTAT": # Returns network status
+            network_status = {
+                "node_amount": len(self.node_list),
+                "node_addr_list": list(map(lambda node: node.address, self.node_list)),
+                "node_status_list": list(map(lambda node: 1 if node.status == Node_Status.Active else 0, self.node_list))
+            }
+            
+            network_status_json = json.dumps(network_status)
+            network_status_bytes = network_status_json.encode('utf-8')
+            return b'S' + network_status_bytes
+        
+        # Commands handled by ESP root module
+        if command == "NINFO": 
+            self.uart_sent(b'NINFO')
+            # self.update_dashboard({"event": "data_request"})
+            return b'S'
+
+        if command == "RST-R":
+            for node in self.node_list:
+                node.status = Node_Status.Inactive
+            self.uart_sent(data)
+            # self.update_dashboard({"event": "network_reset"})
+            return b'S'
+        
+        return self.uart_sent(data)
+
+    def callback_uart(self, data):
+        if not data or len(data) < 3:
+            print(f"Error: Received empty or malformed data: {data}")
+            return b'F'
+        
+        node_addr_bytes = data[0:2]
+        op_code = data[2:3]
+        payload = data[3:]
+        print(f"{datetime.now()} - Received UART data: {data}")
+        
+        node_addr = parseNodeAddr(node_addr_bytes)
+        
+        if "Data" in opcodes and op_code == opcodes["Data"]:
+            self.update_node_data(node_addr, payload)
+            print(f"Node-{node_addr} updated")
+            return b'S'
+        
+        if op_code == opcodes["Net Info"]:
+            self.handle_network_info(payload)
+            return b'S'
+        
+        if "Node Info" in opcodes and op_code == opcodes["Node Info"]:
+            node_uuid = payload
+            node_list = list(filter(lambda node: node.address == node_addr, self.node_list))
+            
+            if len(node_list) <= 0:
+                node = self.add_node("Node", node_addr, node_uuid)
+            else:
+                node = node_list[0]
+                node.uuid = node_uuid
+                node.status = Node_Status.Active
+                
+            print(f"Node-{node_addr} connected")
+            
+            update = {"event": "node_connected", "node": node.__dict__}
+            self.update_dashboard(update)
+            
+            return b'S'
+        
+        return self.socket_sent(data)
 
 # Other Utility Functions
 def encodeNodeAddr(node_addr: int) -> bytes:

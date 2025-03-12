@@ -104,7 +104,7 @@ class UartManager:
             self.serial_connection.write(UART_START) # spcial byte marking start
             self.serial_connection.write(data_encoded)
             self.serial_connection.write(UART_END)   # spcial byte marking end
-            print(f"[UART] Sent '{data}'")
+            print(f"{datetime.now()} - Sent data: {data}")
             return b'S'
         else:
             return b'F' + "No Serial Connection".encode()
