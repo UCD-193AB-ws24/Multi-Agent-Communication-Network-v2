@@ -40,18 +40,18 @@ class SocketManager():
         while self.is_connected is False:
             send_socket, send_address = self.server_socket.accept()
             data = send_socket.recv(self.packet_size)
-            print("data: ", data)
+            print(f"{datetime.now()} - Received handshake {data} from {send_address}")
             if data != b'[syn]\x00':
                 send_socket.send(b'[err]-listen_socket_disconnected')
                 send_socket.close()
             else:
-                print("connected to listen")
+                print(f"{datetime.now()} - Received handshake from {send_address}")
                 send_socket.send(b'[ack]\x00')
                 self.is_connected = True
 
         self.send_socket = send_socket
         self.send_address = send_address
-        print(f"Connected with send: {send_address}")
+        print(f"{datetime.now()} - Connected with send: {send_address}")
         
     def server_listening_thread(self):
         print(f"{datetime.now()} - Starting server-socket listening thread")
@@ -59,7 +59,7 @@ class SocketManager():
         
         # listen to socket sonnection for C-API data/message request
         self.server_socket.listen(5)
-        print(f"Listening on 'localhost':{self.server_listen_port} for C-API socket connection")
+        print(f"{datetime.now()} - Listening on 'localhost':{self.server_listen_port} for C-API socket connection")
         try:
             while True:
                 #------TB Review : reconnection----------------
@@ -68,7 +68,7 @@ class SocketManager():
                     self.connect_send_socket()
                 #----------------------------------------------
                 client_socket, address = self.server_socket.accept()
-                print(f" - Requested connection from C-API in {address} has been established.") # [Testing Log]
+                print(f"{datetime.now()} - Requested connection from C-API in {address} has been established.") # [Testing Log]
                 
                 request_handler_thread = threading.Thread(target=self.socket_handler, args=(client_socket,))
                 request_handler_thread.start()

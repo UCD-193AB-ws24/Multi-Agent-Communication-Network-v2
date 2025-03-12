@@ -139,6 +139,41 @@ class NetworkManager:
                 print(f"Node-{node_addr} already exists")
             else:
                 self.add_node("Node", node_addr, node_uuid)
+    
+    # TODO: Handle Direct Forwarding Info will update the node list with the direct forwarding paths
+    # Update node list with another attribute for their direct forwarding paths
+    def handle_direct_forwarding_info(self, payload):
+        # Temporarily print the payload
+        # Decoded date: b'\x04\x02\x12\x34\x56\x78\x9A\xBC\xDE\xF0'
+        # Number of paths: 2
+        # Path 0: 0x1234 -> 0x5678
+        # Path 1: 0x9ABC -> 0xDEF0
+        if len(payload) < 2:
+            print("Invalid data length")
+            return
+
+        opcode = payload[0]
+        num_paths = payload[1]
+
+        if opcode != 0x04:
+            print("Invalid opcode")
+            return
+
+        print(f"Number of paths: {num_paths}")
+
+        index = 2
+        for i in range(num_paths):
+            if index + 4 > len(payload):
+                print("Invalid data length for paths")
+                return
+
+        path_origin = int.from_bytes(payload[index:index+2], 'big')
+        path_target = int.from_bytes(payload[index+2:index+4], 'big')
+        index += 4
+
+        print(f"Path {i}: 0x{path_origin:04X} -> 0x{path_target:04X}")
+
+        return b'F' + "Not Implemented".encode()
 
     def callback_socket(self, data):
         if not data or len(data) < 5:
@@ -155,11 +190,11 @@ class NetworkManager:
             print("[Socket] can't parse command", command)
             return b'F'
         
-        if command == "[GET]": # Returns the data from the node specified
+        if command == "[GET]":
             node_addr = parseNodeAddr(payload[0:2])
             data_ID = payload[2:5].decode('utf-8')
             return self.get_node_data(data_ID, node_addr)
-        elif command == "ACT-C": # Returns active nodes count
+        elif command == "ACT-C":
             count = len(self.get_active_nodes()) % 255
             return b'S' + str(count).encode('utf-8')
         elif command == "NINFO":
@@ -180,6 +215,9 @@ class NetworkManager:
         elif command == "SEND-" or command == "BCAST":
             self.send_uart(data)
             return b'S'
+        elif command == "DFINFO":
+            self.send_uart(b'DFINFO')
+            return b'S'
 
         return b'F' + "Unknown Command".encode()
 
@@ -197,8 +235,10 @@ class NetworkManager:
         
         if "Data" in opcodes and op_code == opcodes["Data"]:
             self.update_node_data(node_addr, payload)
-        elif op_code == opcodes["Net Info"]:
+            update = {"event": "node_updated", "node": self.node_dict[node_addr].__dict__}
+        elif "Net Info" in opcodes and op_code == opcodes["Net Info"]:
             self.handle_network_info(payload)
+            update = {"event": "network info", "node": self.node_dict[node_addr].__dict__}
         elif "Node Info" in opcodes and op_code == opcodes["Node Info"]:
             node_uuid = payload
             node_list = list(filter(lambda node: node.address == node_addr, self.node_list))
@@ -208,31 +248,33 @@ class NetworkManager:
                 node = node_list[0]
                 node.uuid = node_uuid
                 node.status = Node_Status.Active
+            update = {"event": "node_connected", "node": node.__dict__}
+        elif "DF Info" in opcodes and op_code == opcodes["DF Info"]:
+            self.handle_direct_forwarding_info(payload)
         else:
             return b'F' + "Unknown Opcode".encode()
-        
-        update = {"event": "node_connected", "node": node.__dict__}
+
         self.update_dashboard(update)
         
         return b'S'
     
-    async def simulate_updates(self):
-        while True:
-            # Generate random latitude and longitude within specified range
-            latitude = round(random.uniform(38.539466, 38.543397), 6)
-            longitude = round(random.uniform(-121.777816, -121.769394), 6)
+    # async def simulate_updates(self):
+    #     while True:
+    #         # Generate random latitude and longitude within specified range
+    #         latitude = round(random.uniform(38.539466, 38.543397), 6)
+    #         longitude = round(random.uniform(-121.777816, -121.769394), 6)
 
-            # Generate random update data
-            update = {
-                "event": random.choice(["node_added", "node_updated", "node_connected"]),
-                "node": {
-                    "name": f"Node{random.randint(1, 10)}",
-                    "longitude": longitude,
-                    "latitude": latitude,
-                    "uuid": f"uuid-{random.randint(1, 100)}",
-                    "status": random.choice(["Active", "Inactive"]),
-                    "data": {f"data{random.randint(1, 5)}": random.randint(1, 100)}
-                }
-            }
-            self.update_dashboard(update)
-            await asyncio.sleep(2)
+    #         # Generate random update data
+    #         update = {
+    #             "event": random.choice(["node_added", "node_updated", "node_connected"]),
+    #             "node": {
+    #                 "name": f"Node{random.randint(1, 10)}",
+    #                 "longitude": longitude,
+    #                 "latitude": latitude,
+    #                 "uuid": f"uuid-{random.randint(1, 100)}",
+    #                 "status": random.choice(["Active", "Inactive"]),
+    #                 "data": {f"data{random.randint(1, 5)}": random.randint(1, 100)}
+    #             }
+    #         }
+    #         self.update_dashboard(update)
+    #         await asyncio.sleep(2)

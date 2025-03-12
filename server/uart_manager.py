@@ -22,6 +22,9 @@ class UartManager:
             target=self.uart_listening_thread, daemon=True
         )
         self.uart_thread.start()
+    
+    def attach_callback(self, callback_func):
+        self.callback_func = callback_func
             
     def uart_connect(self, serial_port, uart_baud_rate):
         if serial_port:
@@ -56,29 +59,23 @@ class UartManager:
                 try:
                     uart_message = self.uart_read_message()
                     print(f"{datetime.now()} - Received UART message: {uart_message}")
-                    self.uart_event_handler(uart_message)
+                    self.uart_handler(uart_message)
                     continue  # Successfully read one message
                 except serial.SerialException as e:
-                    print(f"Serial communication error: {e}")
+                    print(f"{datetime.now()} - Serial communication error: {e}")
                     self.serial_connection = None  # Reset the connection
                 except Exception as e:
-                    print(f"Unexpected error: {e}")
+                    print(f"{datetime.now()} - Unexpected error: {e}")
             else:
                 self.uart_connect(self.serial_port, self.uart_baud_rate)
                 time.sleep(3)
     
-    def uart_event_handler(self, data):
+    def uart_handler(self, data):
         print(f"{datetime.now()} - Received UART data:")
         if self.callback_func:
             self.callback_func(data)
     
-    def attach_callback(self, callback_func):
-        self.callback_func = callback_func
-    
-    # read the entire message base on protocal, -------------------- TB Finish --------------------------
     def uart_read_message(self):
-        # read the entire message base on our uart escape byte protocal
-        # TB Test
         data = b''
         while True:
             if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
@@ -108,9 +105,7 @@ class UartManager:
         else:
             return b'F' + "No Serial Connection".encode()
 
-    # for uart protocal,  -------------------- TB Tested --------------------------
     def uart_decoder(self, data):
-        # decode escape bytes
         result = b''
         
         print(f"{datetime.now()} - Decoding data: {data}")
@@ -132,9 +127,7 @@ class UartManager:
         print(f"{datetime.now()} - Decoded data: {result}")
         return result
     
-    # for uart protocal, -------------------- TB Tested --------------------------
     def uart_encoder(self, data):
-        # encode escape bytes
         print(f"{datetime.now()} - Encoding data: {data}")
         result = b''
         

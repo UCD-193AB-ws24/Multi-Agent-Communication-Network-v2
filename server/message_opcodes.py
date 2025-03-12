@@ -4,6 +4,7 @@ opcodes = {
     "Net Info":    b'\x01',
     "Node Info":   b'\x02',
     "Root Reset":  b'\x03',      # Singling root just get powered / restarted
+    "DF Info":     b'\x04',      # Direct forwarding path request
     "Data":        "D".encode(), # Data Update message (Spcial usecase description below)
     "Request":     "R".encode(), # Request message, such as robot request
     "ECHO":        "E".encode(), # message expecting ECHO message back
