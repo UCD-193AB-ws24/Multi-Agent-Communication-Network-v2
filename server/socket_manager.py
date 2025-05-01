@@ -1,126 +1,102 @@
+import signal
 import socket
 import threading
-from datetime import datetime
-import signal
 
-class SocketManager():
+class SocketManager:
     def __init__(self, server_listen_port, packet_size):
         self.packet_size = packet_size
         self.server_listen_port = server_listen_port
-        self.server_socket = None             # Listen for all socket connection
+        self.server_socket = None
         self.server_listen_thread = None
-        self.send_socket = None               # The Main communication Socket for python sending to C-API
+        self.send_socket = None
         self.send_address = None
         self.callback_func = None
         self.is_connected = False
         self.initialize_socket()
         signal.signal(signal.SIGINT, self.SIGINT_handler)
 
+    def log(self, level, message):
+        print(f"[SOCKET][{level}]  - {message}")
+
     def SIGINT_handler(self, signum, frame):
-        self.send_socket.close()
-        self.server_socket.close()
-        exit(0)
-        
+        if self.send_socket: self.send_socket.close()
+        if self.server_socket: self.server_socket.close()
+
     def initialize_socket(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.bind(('localhost', self.server_listen_port))
-        self.server_socket.settimeout(None)  # accept_connectiondont timeout when waiting for response
+        self.server_socket.bind(("localhost", self.server_listen_port))
+        self.server_socket.settimeout(None)
+        self.log("INFO", f"Socket initialized on port {self.server_listen_port}")
 
     def run(self):
-        self.socket_thread = threading.Thread(target=self.server_listening_thread, args=(), daemon=True)
+        self.socket_thread = threading.Thread(target=self.server_listening_thread, daemon=True)
         self.socket_thread.start()
-    
+
     def attach_callback(self, callback_func):
         self.callback_func = callback_func
-                
+
     def connect_send_socket(self):
         self.server_socket.listen(1)
-
-        # Handshake
-        while self.is_connected is False:
+        while not self.is_connected:
             send_socket, send_address = self.server_socket.accept()
             data = send_socket.recv(self.packet_size)
-            print(f"{datetime.now()} - Received handshake {data} from {send_address}")
-            if data != b'[syn]\x00':
-                send_socket.send(b'[err]-listen_socket_disconnected')
+            self.log("RECEIVE", f"Handshake from {send_address}: {data}")
+            if data != b"[syn]\x00":
+                send_socket.send(b"[err]-listen_socket_disconnected")
                 send_socket.close()
             else:
-                print(f"{datetime.now()} - Received handshake from {send_address}")
-                send_socket.send(b'[ack]\x00')
+                send_socket.send(b"[ack]\x00")
                 self.is_connected = True
-
+                self.log("CONNECT", f"Handshake accepted from {send_address}")
         self.send_socket = send_socket
         self.send_address = send_address
-        print(f"{datetime.now()} - Connected with send: {send_address}")
-        
+        self.log("CONNECT", f"Send socket established with {send_address}")
+
     def server_listening_thread(self):
-        print(f"{datetime.now()} - Starting server-socket listening thread")
+        self.log("THREAD", "Starting server socket listening thread")
         self.connect_send_socket()
-        
-        # listen to socket sonnection for C-API data/message request
         self.server_socket.listen(5)
-        print(f"{datetime.now()} - Listening on 'localhost':{self.server_listen_port} for C-API socket connection")
         try:
             while True:
-                #------TB Review : reconnection----------------
-                if(self.is_connected == False):
-                    print(" - Reconnecting...")
+                if not self.is_connected:
+                    self.log("WARN", "Reconnecting...")
                     self.connect_send_socket()
-                #----------------------------------------------
                 client_socket, address = self.server_socket.accept()
-                print(f"{datetime.now()} - Requested connection from C-API in {address} has been established.") # [Testing Log]
-                
-                request_handler_thread = threading.Thread(target=self.socket_handler, args=(client_socket,))
-                request_handler_thread.start()
+                self.log("CONNECT", f"New connection from {address}")
+                threading.Thread(target=self.socket_handler, args=(client_socket,), daemon=True).start()
         except Exception as e:
-            print('Exception in server-socket listening thread:', e)
-        except KeyboardInterrupt:
-            print("KeyboardInterrupt")
+            self.log("ERROR", f"Exception: {e}")
         finally:
-            if self.server_socket != None:
-                self.server_socket.close()
-            if self.send_socket != None:
-                self.send_socket.close()
-            pass
-                
+            if self.server_socket: self.server_socket.close()
+            if self.send_socket: self.send_socket.close()
 
     def socket_handler(self, client_socket):
-        # print("Starting new C-API socket request thread")  # [Testing Log]
-
-        # read the request from C-API from socket
-        data = client_socket.recv(self.packet_size)
-        #if the socket is trying to handshake meaning client was disconnected
-        if(data == b'[syn]\x00'):
-            self.is_connected = False
-            client_socket.send(b'[err]-listen_socket_disconnected')
+        try:
+            data = client_socket.recv(self.packet_size)
+            if data == b"[syn]\x00":
+                self.is_connected = False
+                client_socket.send(b"[err]-listen_socket_disconnected")
+                client_socket.close()
+                return
+            
+            response_bytes = self.callback_func(data)
+            client_socket.send(response_bytes)
             client_socket.close()
-            return
-        # print("Received Request:", data.decode())
+        except Exception as e:
+            self.log("ERROR", f"Socket handler error: {e}")
+        finally:
+            client_socket.close()
 
-        # pass data to Net_Manager's function to handler and return the response
-        response_bytes = self.callback_func(data)
-        client_socket.send(response_bytes)
-        client_socket.close()
-        
-    def send_data(self, data): # -------------------- TB Finish --------------------------
-        if self.send_socket != None:
-            # socket.sento(bytes, addr)
+    def send_data(self, data):
+        if self.send_socket:
             try:
                 self.send_socket.sendall(data)
+                self.log("SEND", f"Sent data: {data}")
+                return b"S"
             except socket.error as e:
-                err_no = e.errno
-                error_str = e.strerror
-                if(err_no == 32 or err_no == 104 or err_no == 111):
-                    print("Client socket disconnected")
-                    self.send_socket.close()
-                    self.is_connected = False
-                    return b'F' + "Client socket disconnected".encode()
-                if err_no == 110:
-                    print("Connection timeout")
-                    return b'F' + "Connection timeout".encode()
+                self.is_connected = False
+                self.send_socket.close()
+                return b"F" + f"Socket error: {str(e)}".encode()
         else:
-            print("No socket connected")
-            return b'F' + "No socket connected".encode()
-            # implment attemps of reconnection
-        
-        return b'S'
+            self.log("ERROR", "No socket connected")
+            return b"F" + b"No socket connected"
