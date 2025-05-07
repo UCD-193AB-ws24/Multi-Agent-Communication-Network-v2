@@ -83,6 +83,7 @@ class UartManager:
             self.log("SEND", f"Sent data: {data}")
             return b'S'
         else:
+            self.log("ERROR", "No serial connection")
             return b'F' + b"No Serial Connection"
 
     def uart_decoder(self, data):

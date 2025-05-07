@@ -254,6 +254,7 @@ class NetworkManager:
             return b'F'
         
         if command == "NINFO":
+            self.log("INFO", "NINFO command received")
             self.send_uart(b'NINFO')
             return b'S'
         elif command == "GETDF":

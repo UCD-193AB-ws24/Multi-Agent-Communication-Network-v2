@@ -23,25 +23,12 @@ async def main():
         socket_manager.send_data, uart_manager.send_data, websocket_server.send_data
     )
 
-    try:
-        uart_manager.run()
-    except Exception as e:
-        print(f"[UART][ERROR]  - UART not started: {e}")
+    uart_manager.run()
     socket_manager.run()
     websocket_server.run()
-
-    await asyncio.sleep(3)
     
-    stop_event = asyncio.Event()
-    
-    def handle_exit(sig, frame):
-        print(f"\n[MAIN] Caught signal {sig}. Shutting down...")
-        stop_event.set()
-    
-    signal.signal(signal.SIGINT, handle_exit)
-    signal.signal(signal.SIGTERM, handle_exit)
-
-    await stop_event.wait()
+    while True:
+        await asyncio.sleep(1)
 
 if __name__ == "__main__":
     try:

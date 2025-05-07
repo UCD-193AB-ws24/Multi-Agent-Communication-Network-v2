@@ -1,5 +1,4 @@
 import asyncio
-import signal
 from network_manager import NetworkManager
 from socket_manager import SocketManager
 from uart_manager import UartManager
@@ -23,10 +22,7 @@ async def main():
         socket_manager.send_data, uart_manager.send_data, websocket_server.send_data
     )
 
-    try:
-        uart_manager.run()
-    except Exception as e:
-        print(f"[UART][ERROR]  - UART not started: {e}")
+    uart_manager.run()
     socket_manager.run()
     websocket_server.run()
 
@@ -148,24 +144,20 @@ async def main():
     network_manager.print_all_direct_paths()
     
     # SEND- and BCAST commands
-    print("\n[TEST] Simulating SEND- command to node 0x0005 with message 'hello'")
-    uart_data = b"SEND-" + b"\x00\x05" + b"hello"
-    network_manager.callback_socket(uart_data)
+    print("\n[TEST] Simulating program sending SEND- command to node 0x0005 with message 'hello'")
+    socket_command = b"SEND-" + b"\x00\x05" + b"hello"
+    network_manager.callback_socket(socket_command)
 
-    print("\n[TEST] Simulating BCAST command to all nodes with message 'world'")
-    uart_data = b"BCAST" + b"\x00\x00" + b"world"
-    network_manager.callback_socket(uart_data)
+    print("\n[TEST] Simulating program sending BCAST command to all nodes with message 'stop'")
+    socket_command = b"BCAST" + b"\x00\x00" + b"world"
+    network_manager.callback_socket(socket_command)
     
-    stop_event = asyncio.Event()
+    # NINFO command
+    print("\n[TEST] Simulating program sending NINFO command to server")
+    socket_command = b"NINFO"
+    network_manager.callback_socket(socket_command)
     
-    def handle_exit(sig, frame):
-        print(f"\n[MAIN] Caught signal {sig}. Shutting down...")
-        stop_event.set()
-    
-    signal.signal(signal.SIGINT, handle_exit)
-    signal.signal(signal.SIGTERM, handle_exit)
-
-    await stop_event.wait()
+    await asyncio.sleep(10)
 
 if __name__ == "__main__":
     try:
