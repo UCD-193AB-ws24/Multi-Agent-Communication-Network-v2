@@ -5,7 +5,7 @@ from opcode_subscribe import subscribe, unsubscribe, notify
 from message_opcodes import opcodes
 import time
 # self_port = 6001
-server_port = 5002
+server_port = 5001
 server_ip = "localhost"
 
     

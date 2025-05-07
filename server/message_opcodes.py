@@ -1,32 +1,40 @@
-opcodes = {
-    # =========== API Message defult opcodes ==============
-    "Custom":      b'\x00',      # Guarantee to be pass to app level
-    "Net Info":    b'\x01',
-    "Node Info":   b'\x02',
-    "Root Reset":  b'\x03',      # Singling root just get powered / restarted
-    "Data":        "D".encode(), # Data Update message (Spcial usecase description below)
-    "Request":     "R".encode(), # Request message, such as robot request
-    "ECHO":        "E".encode(), # message expecting ECHO message back
-    "ACK":         "A".encode(), # Acknowledgement message as confirmation on receivion
-    "Test":        "T".encode(), # Reserved for develpoment testing message
-    "Reset":       "S".encode(), # Message to inform edge device reset edge-esp-network-module
-    # ============= End of defult opcodes =================
+OPCODES = {
+    # Network Info (Opcode: 0x01)
+    # Sent in response to the 'NINFO' command from the host.
+    # Indicates a snapshot of current provisioned nodes.
+    # Payload format:
+    #   [0x01][batch_size][addr][uuid]...[addr][uuid]
+    #       - batch_size (1 byte): Number of nodes in this batch
+    #       - addr (2 bytes): Unicast address (big-endian)
+    #       - uuid (16 bytes): 128-bit UUID
+    # Sent in batches of up to 40 nodes.
+    "Net Info": b'\x01',
+
+    # Node Provisioned (Opcode: 0x02)
+    # Sent automatically after a node completes provisioning and configuration.
+    # Payload format:
+    #   [0x02][uuid]
+    #       - uuid (16 bytes): UUID of newly added node
+    # Used to notify host without requiring full NINFO refresh.
+    "Node Info": b'\x02',
+
+    # Root Restarted (Opcode: 0x03)
+    # Sent right after the root node reboots (e.g., from 'RST-R' command).
+    # Payload format:
+    #   [0x03]
+    # No payload. Signals that runtime state has been reset (DF table, buffers).
+    # Host should clear volatile state and optionally re-request NINFO and DFINFO.
+    "Root Reset": b'\x03',
+
+    # Direct Forwarding Table Info (Opcode: 0x04)
+    # Sent in response to the 'DFINFO' command from the host.
+    # Contains all DF paths stored by the root.
+    # Payload format:
+    #   [0x04][path_count][origin][target]...[origin][target]
+    #       - path_count (1 byte): Number of DF paths
+    #       - origin (2 bytes): Source node address (big-endian)
+    #       - target (2 bytes): Destination node address (big-endian)
+    # Sent in batches of up to 40 paths.
+    "DF Info": b'\x04',
 }
 
-# =============== Opcode Detiles and Payload Format ================
-# Most message is delevierd between root-APIs <-> edge APIs, they will not stop
-# at python-server and gets propogate to application level via Socket.
-#
-# Message with "Special opcodes" from edge APIs will get processed by 
-# Python-Server and DON'T get propogate to application level.
-#
-# ******** MESSAGE DEFULT STRUCT *******
-#     Msg_meta        |       Msg_Payload
-#  2_byte_node_addr   |   1_byte_opcode + payload
-# *******************************************
-#
-# 1) Data Update from edge-API (Special case)
-#    => incoming data update get handler in python server
-# node_addr|Data_Update_opcode| amount |data_ID|data| ... |data_ID|data|
-#    2     |        1         |    1   |   1   | xx | ... |   1   | xx | 
-#

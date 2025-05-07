@@ -2,7 +2,6 @@ import asyncio
 import websockets
 import json
 import threading
-from datetime import datetime
 
 class WebsocketServer:
     def __init__(self, host, port):
@@ -16,7 +15,7 @@ class WebsocketServer:
     async def handler(self, websocket, path):
         try:
             async for message in websocket:
-                print(f"{datetime.now()} - Received message from client: {message}")
+                print(f" - Received message from client: {message}")
                 await websocket.send(message)
         except websockets.exceptions.ConnectionClosedError:
             print("Connection closed")
@@ -25,7 +24,7 @@ class WebsocketServer:
 
     async def start_server(self):
         self.server = await websockets.serve(self.handler, self.host, self.port)
-        print(f"{datetime.now()} - WebSocket server started on ws://{self.host}:{self.port}")
+        print(f" - WebSocket server started on ws://{self.host}:{self.port}")
         await self.server.wait_closed()
 
     def run(self):

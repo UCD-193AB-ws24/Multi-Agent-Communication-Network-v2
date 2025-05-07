@@ -1,12 +1,11 @@
 import serial
 import threading
 import time
-from datetime import datetime
+import re
 
-ESCAPE_BYTE_BS = b'\xfa'  # byte string of 0xfa
-ESCAPE_BYTE = ESCAPE_BYTE_BS[0]  # int type == 0xfa == 250
-UART_START = b'\xff'
-UART_END = b'\xfe'
+ESCAPE_BYTE = 0xFA
+UART_START = b'\xFF'
+UART_END = b'\xFE'
 
 class UartManager:
     def __init__(self, serial_port, uart_baud_rate):
@@ -16,133 +15,109 @@ class UartManager:
         self.uart_thread = None
         self.callback_func = None
         self.is_serial_connected = False
-    
+
+    def log(self, level, message):
+        print(f"[UART][{level}]  - {message}")
+
     def run(self):
-        self.uart_thread = threading.Thread(
-            target=self.uart_listening_thread, daemon=True
-        )
+        self.uart_thread = threading.Thread(target=self.uart_listening_thread, daemon=True)
         self.uart_thread.start()
-            
-    def uart_connect(self, serial_port, uart_baud_rate):
-        if serial_port:
-            self.serial_port = serial_port
-        if uart_baud_rate:
-            self.uart_baud_rate = uart_baud_rate
 
-        if self.serial_connection and (serial_port and self.serial_port != serial_port):
-            self.serial_connection.close()
-            self.serial_connection = None
-            self.is_serial_connected = False
+    def attach_callback(self, callback_func):
+        self.callback_func = callback_func
 
+    def uart_connect(self, serial_port=None, uart_baud_rate=None):
+        if serial_port: self.serial_port = serial_port
+        if uart_baud_rate: self.uart_baud_rate = uart_baud_rate
         if self.serial_connection:
-            print("UART port already connected:", self.serial_port)
-            self.is_serial_connected = True
-            return
-
+            self.serial_connection.close()
         try:
             self.serial_connection = serial.Serial(self.serial_port, self.uart_baud_rate)
             self.is_serial_connected = True
-            print(f"{datetime.now()} - Connected to serial port {self.serial_port}")
+            self.log("INFO", f"Connected to {self.serial_port}")
         except Exception as e:
-            print(f"{datetime.now()} - Unable to connect to serial port {self.serial_port}: {e}")
-    
-    def uart_listening_thread(self):
-        print(f"{datetime.now()} - Starting UART listening thread")
+            self.log("ERROR", f"Connection failed: {e}")
 
+    def uart_listening_thread(self):
+        self.log("INFO", "Starting UART listening thread")
         while True:
-            if self.serial_connection is not None:
-                self.is_serial_connected = True
-                print(f"{datetime.now()} - Listening for UART messages")
+            if self.serial_connection:
+                self.log("INFO", "Listening for UART messages")
                 try:
-                    uart_message = self.uart_read_message()
-                    print(f"{datetime.now()} - Received UART message: {uart_message}")
-                    self.uart_event_handler(uart_message)
-                    continue  # Successfully read one message
-                except serial.SerialException as e:
-                    print(f"Serial communication error: {e}")
-                    self.serial_connection = None  # Reset the connection
+                    data = self.uart_read_message()
+                    self.log("RECEIVE", f"Raw UART message: {data}")
+                    self.uart_handler(data)
                 except Exception as e:
-                    print(f"Unexpected error: {e}")
+                    self.log("ERROR", f"UART error: {e}")
+                    self.serial_connection = None
             else:
-                self.uart_connect(self.serial_port, self.uart_baud_rate)
+                self.uart_connect()
                 time.sleep(3)
-    
-    def uart_event_handler(self, data):
-        print(f"{datetime.now()} - Received UART data:")
+
+    def uart_handler(self, data):
+        self.log("RECEIVE", "Processing UART data")
         if self.callback_func:
-            self.callback_func(data)
-    
-    def attach_callback(self, callback_func):
-        self.callback_func = callback_func
-    
-    # read the entire message base on protocal, -------------------- TB Finish --------------------------
+            cleaned = self.clean_uart_message(data)
+            self.log("CLEAN", f"Cleaned UART message: {cleaned}")
+            self.callback_func(cleaned)
+
     def uart_read_message(self):
-        # read the entire message base on our uart escape byte protocal
-        # TB Test
         data = b''
         while True:
-            if self.serial_connection.in_waiting > 0:  # Check if there is data available to read
-                byte = self.serial_connection.read() # Read and decode the data
-                # print(byte, end="-")
+            if self.serial_connection.in_waiting:
+                byte = self.serial_connection.read()
                 if byte == UART_START:
-                    # start of message
                     data = b''
-                    continue
-                if byte == UART_END:
-                    # found end of message sequence
+                elif byte == UART_END:
                     break
-
-                data += byte
-        
-        # decode the raw uart signals
+                else:
+                    data += byte
         return self.uart_decoder(data)
-    
+
     def send_data(self, data):
-        if self.serial_connection != None:
-            data_encoded = self.uart_encoder(data)
-            self.serial_connection.write(UART_START) # spcial byte marking start
-            self.serial_connection.write(data_encoded)
-            self.serial_connection.write(UART_END)   # spcial byte marking end
-            print(f"{datetime.now()} - Sent data: {data}")
+        if self.serial_connection:
+            encoded = self.uart_encoder(data)
+            self.serial_connection.write(UART_START)
+            self.serial_connection.write(encoded)
+            self.serial_connection.write(UART_END)
+            self.log("SEND", f"Sent data: {data}")
             return b'S'
         else:
-            return b'F' + "No Serial Connection".encode()
+            self.log("ERROR", "No serial connection")
+            return b'F' + b"No Serial Connection"
 
-    # for uart protocal,  -------------------- TB Tested --------------------------
     def uart_decoder(self, data):
-        # decode escape bytes
+        self.log("DECODE", f"Raw: {data}")
         result = b''
-        
-        print(f"{datetime.now()} - Decoding data: {data}")
         i = 0
         while i < len(data):
-            byte = data[i] # python gets the int type of single byte
-            
+            byte = data[i]
             if byte != ESCAPE_BYTE:
-                result += byte.to_bytes(1, 'big') # get the bytestring of this byte
-                i += 1 # processed 1 byte for normal byte
-                continue
-            
-            # byte == escape_byte, decode escaped byte
-            byte_encoded = data[i + 1]
-            byte_decoded = byte_encoded ^ 0xff
-            result += byte_decoded.to_bytes(1, 'big') # get the bytestring of this byte
-            i += 2 # processed 2 byte for encoded byte
-
-        print(f"{datetime.now()} - Decoded data: {result}")
+                result += bytes([byte])
+                i += 1
+            else:
+                result += bytes([data[i+1] ^ 0xFF])
+                i += 2
+        self.log("DECODE", f"Decoded: {result}")
         return result
-    
-    # for uart protocal, -------------------- TB Tested --------------------------
+
     def uart_encoder(self, data):
-        # encode escape bytes
-        print(f"{datetime.now()} - Encoding data: {data}")
+        self.log("SEND", f"Encoding data: {data}")
         result = b''
-        
         for byte in data:
             if byte >= ESCAPE_BYTE:
-                result += ESCAPE_BYTE.to_bytes(1, 'big') + (byte ^ 0xff).to_bytes(1, 'big')
+                result += bytes([ESCAPE_BYTE]) + bytes([byte ^ 0xFF])
             else:
-                result += byte.to_bytes(1, 'big')
-            
-        print(f"{datetime.now()} - Encoded data: {result}")
+                result += bytes([byte])
+        self.log("SEND", f"Encoded: {result}")
         return result
+
+    def clean_uart_message(self, data: bytes) -> bytes:
+        ansi_escape = re.compile(rb'\x1b\[[0-9;]*m')
+        data = ansi_escape.sub(b'', data)
+        filtered = []
+        for line in data.split(b'\n'):
+            if b'I (' in line or b'W (' in line or b'E (' in line:
+                continue
+            filtered.append(line.strip())
+        return b'\n'.join(filtered)
