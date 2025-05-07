@@ -6,8 +6,9 @@ from message_opcodes import OPCODES
 def get_data_len_by_id(data_id):
     with open('Data_Info.json', 'r') as file:
         data = json.load(file)
+    data_id_int = int.from_bytes(data_id, byteorder='big') if isinstance(data_id, bytes) else data_id
     for type_name, type_info in data.items():
-        if type_info["ID"] == data_id:
+        if type_info["ID"] == data_id_int:
             return type_info["Length"]
     print(f"[ERROR][] Undefined data type data_id:{data_id}")
     return -1
@@ -74,34 +75,68 @@ class NetworkManager:
         response += data
         return response
 
-    def add_node(self, name: str, address: int, uuid: bytes) -> Node:
-        node = Node(name, address, uuid)
-        self.node_list.append(node)
+    def add_node(self, name, address, uuid_bytes):
+        if address in self.node_dict:
+            self.log("INFO", f"Node-{address:04X} already exists, skipping re-add")
+            return self.node_dict[address]
+
+        node = Node(name=name, address=address, uuid=uuid_bytes)
         self.node_dict[address] = node
-        self.log("INFO", f"Node-{address:04X} with UUID: {uuid.hex()} added")
+        self.node_list.append(node)
+        self.log("INFO", f"Node-{address:04X} with UUID: {uuid_bytes.hex()} added")
         return node
+
     
-    def update_node_data(self, node_addr: int, msg_payload: bytes):
-        node = self.node_dict.get(node_addr)
-        if node is None:
-            node = self.add_node("Node", node_addr, b'')
-        node.status = Node_Status.Active
+    def update_node_data(self, node_addr, payload):
+        if not payload or len(payload) < 1:
+            self.log("ERROR", "Empty or malformed data payload")
+            return
 
-        size = msg_payload[0]
-        data_id_len = 1
-        data_start = 1
+        data_id_byte = payload[0:1]
+        data_id = int.from_bytes(data_id_byte, 'big')
 
-        for _ in range(size):
-            data_ID = msg_payload[data_start: data_start + data_id_len]
-            data_len = get_data_len_by_id(data_ID)
-            if data_len == -1:
-                self.log("ERROR", f"Invalid data type for node {node_addr}, payload: {msg_payload}")
-                return
-            data = msg_payload[data_start + data_id_len: data_start + data_id_len + data_len]
-            node.storeData(data_ID, data)
-            data_start += data_id_len + data_len
+        self.log("DEBUG", f"Raw payload: {payload}")
+        self.log("DEBUG", f"data_id (byte): {data_id_byte}, int: {data_id}")
 
-        self.log("DATA", f"Node-{node_addr:04X} data updated")
+        data_len = get_data_len_by_id(data_id_byte)
+        if data_len is None or len(payload) < 1 + data_len:
+            self.log("ERROR", f"Invalid data type for node {node_addr}, payload: {payload}")
+            return
+
+        value_bytes = payload[1:1 + data_len]
+
+        if node_addr not in self.node_dict:
+            self.log("ERROR", f"Data received for unknown node {node_addr}")
+            return
+
+        node = self.node_dict[node_addr]
+
+        # Handle GPS (data_id == 5)
+        if data_id == 5 and data_len == 16:
+            lat = struct.unpack('<d', value_bytes[0:8])[0]
+            lon = struct.unpack('<d', value_bytes[8:16])[0]
+            node.gps = (lat, lon)
+            self.log("DATA", f"Node-0x{node_addr:04X} GPS updated to (lat: {lat:.6f}, lon: {lon:.6f})")
+        else:
+            self.log("ERROR", f"Unsupported data_id {data_id} or invalid length {data_len}")
+
+        self.log("DATA", f"Node-0x{node_addr:04X} data updated")
+    
+    def update_node_gps(self, node_addr, payload):
+        if len(payload) != 16:
+            self.log("ERROR", f"Expected 16 bytes for GPS, got {len(payload)}")
+            return
+
+        lat = struct.unpack('<d', payload[0:8])[0]
+        lon = struct.unpack('<d', payload[8:16])[0]
+
+        if node_addr not in self.node_dict:
+            self.log("ERROR", f"GPS received for unknown node {node_addr}")
+            return
+
+        node = self.node_dict[node_addr]
+        node.gps = (lat, lon)
+        self.log("DATA", f"Node-0x{node_addr:04X} GPS updated to (lat: {lat:.6f}, lon: {lon:.6f})")
 
     def handle_network_info(self, payload):
         batch_size = payload[0]
@@ -113,6 +148,10 @@ class NetworkManager:
             offset += 2
             node_uuid = payload[offset:offset + 16]
             offset += 16
+            
+            if node_addr in seen_addrs:
+                continue
+            
             seen_addrs.add(node_addr)
 
             if node_addr not in self.node_dict:
@@ -144,11 +183,11 @@ class NetworkManager:
     
     def handle_direct_forwarding_info(self, payload):
         if len(payload) < 1:
-            self.log("ERROR", "Invalid DFINFO payload length")
+            self.log("ERROR", "Invalid DFGET payload length")
             return b'F'
 
         num_paths = payload[0]
-        self.log("DFINFO", f"{num_paths} direct forwarding paths received")
+        self.log("DFGET", f"{num_paths} direct forwarding paths received")
 
         self.df.clear()
         index = 1
@@ -169,7 +208,7 @@ class NetworkManager:
                 self.log("WARNING", f"Ignoring invalid DF path {i}: 0x{path_origin:04X} -> 0x{path_target:04X} (node(s) missing or inactive)")
                 continue
 
-            self.log("DFINFO", f"Path {i}: 0x{path_origin:04X} -> 0x{path_target:04X}")
+            self.log("DFGET", f"Path {i}: 0x{path_origin:04X} -> 0x{path_target:04X}")
             self.df.append({ "origin": path_origin, "target": path_target })
 
         self.print_all_direct_paths()
@@ -193,12 +232,12 @@ class NetworkManager:
             self.print_node_info(node)
 
     def print_all_direct_paths(self):
-        self.log("DFINFO", "Current Direct Forwarding Paths:")
+        self.log("DFGET", "Current Direct Forwarding Paths:")
         if not self.df:
-            self.log("DFINFO", "  (none)")
+            self.log("DFGET", "  (none)")
             return
         for path in self.df:
-            self.log("DFINFO", f"  {path['origin']:04X} -> {path['target']:04X}")
+            self.log("DFGET", f"  {path['origin']:04X} -> {path['target']:04X}")
     
     def update_dashboard(self, update):
         if self.send_web:
@@ -220,26 +259,34 @@ class NetworkManager:
         if op_code == OPCODES["Net Info"]:
             self.handle_network_info(payload)
         elif op_code == OPCODES["Node Info"]:
-            self.log("INFO", f"Node Info received from 0x{node_addr:04X}")
             self.add_node("Node", node_addr, payload)
         elif op_code == OPCODES["Root Reset"]:
-            self.log("INFO", f"Root Reset received from 0x{node_addr:04X}")
             self.df.clear()
         elif op_code == OPCODES["DF Info"]:
             self.handle_direct_forwarding_info(payload)
+        elif op_code == OPCODES["Data"]:
+            self.update_node_gps(node_addr, payload)
         else:
             self.log("INFO", f"Unhandled opcode from 0x{node_addr:04X}")
         
         self.update_dashboard({
-            "nodes": [
-                {
-                    "address": node.address,
-                    "status": node.status.name,
-                    "uuid": node.uuid.hex(),
-                } 
-                for node in self.node_list
-            ],
-            "direct_forwarding_paths": self.df
+        "nodes": [
+            {
+                "address": node.address,
+                "status": node.status.name,
+                "uuid": node.uuid.hex(),
+                "gps": {
+                    "lat": node.gps[0],
+                    "lon": node.gps[1]
+                } if node.gps else None,
+                "data": {
+                    k.hex(): [entry.hex() for entry in v]
+                    for k, v in node.data_historys.items()
+                } if node.data_historys else {}
+            } 
+            for node in self.node_list
+        ],
+        "direct_forwarding_paths": self.df
         })
                 
     def callback_socket(self, data):
@@ -258,6 +305,7 @@ class NetworkManager:
             self.send_uart(b'NINFO')
             return b'S'
         elif command == "GETDF":
+            self.log("INFO", "GETDF command received")
             self.send_uart(b'GETDF')
             return b'S'
         elif command == "RST-R":
