@@ -1,3 +1,4 @@
+from flask import Flask, request
 import asyncio
 import signal
 from network_manager import NetworkManager
@@ -84,7 +85,5 @@ async def main():
         print("Shutting down...")
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n[MAIN] KeyboardInterrupt caught outside event loop.")
+    asyncio.run(main())
+    print("Server has shut down.")
