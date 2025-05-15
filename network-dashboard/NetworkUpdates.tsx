@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import parseGeoraster from "georaster";
 import GeoRasterLayer from "georaster-layer-for-leaflet";
 import "./style.scss";
+import "./style.scss";
 
 interface NodeData {
   name: string;
@@ -43,12 +44,32 @@ export default function NetworkUpdates() {
   }, []);
 
   useEffect(() => {
+    const interBubble = document.querySelector<HTMLDivElement>(".interactive");
+    if (!interBubble) return;
+    let curX = 0, curY = 0, tgX = 0, tgY = 0;
+    function move() {
+      curX += (tgX - curX) / 20;
+      curY += (tgY - curY) / 20;
+      interBubble.style.transform = `translate(${Math.round(curX)}px, ${Math.round(curY)}px)`;
+      requestAnimationFrame(move);
+    }
+    window.addEventListener("mousemove", e => {
+      tgX = e.clientX;
+      tgY = e.clientY;
+    });
+    move();
+    return () => window.removeEventListener("mousemove", () => {});
+  }, []);
+
+  useEffect(() => {
     const loadDefaultMap = async () => {
       try {
+        const response = await fetch("/maps/default_map.tif", { mode: "cors" });
         const response = await fetch("/maps/default_map.tif", { mode: "cors" });
         const arrayBuffer = await response.arrayBuffer();
         const georaster = await parseGeoraster(arrayBuffer);
         if (mapContainerRef.current && !mapRef.current) {
+          const map = L.map(mapContainerRef.current).setView([38.541, -121.774], 15);
           const map = L.map(mapContainerRef.current).setView([38.541, -121.774], 15);
           mapRef.current = map;
           const layer = new GeoRasterLayer({
@@ -60,11 +81,14 @@ export default function NetworkUpdates() {
               return `rgb(${intensity}, ${intensity}, ${intensity})`;
             },
             resolution: 256,
+            resolution: 256,
           });
           layer.addTo(map);
           markersRef.current.addTo(map);
           setMapLoaded(true);
         }
+      } catch (err) {
+        console.error("Error loading map:", err);
       } catch (err) {
         console.error("Error loading map:", err);
         setMapLoaded(false);
@@ -89,8 +113,10 @@ export default function NetworkUpdates() {
         if (mapRef.current) {
           mapRef.current.eachLayer(layer => {
             if (layer !== markersRef.current) mapRef.current?.removeLayer(layer);
+            if (layer !== markersRef.current) mapRef.current?.removeLayer(layer);
           });
           const layer = new GeoRasterLayer({
+            georaster,
             georaster,
             opacity: 0.8,
             pixelValuesToColorFn: values => {
@@ -99,10 +125,13 @@ export default function NetworkUpdates() {
               return `rgb(${intensity}, ${intensity}, ${intensity})`;
             },
             resolution: 256,
+            resolution: 256,
           });
           layer.addTo(mapRef.current);
           setMapLoaded(true);
         }
+      } catch (err) {
+        console.error("Error loading uploaded map:", err);
       } catch (err) {
         console.error("Error loading uploaded map:", err);
         setMapLoaded(false);
@@ -113,12 +142,22 @@ export default function NetworkUpdates() {
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:7654");
     ws.onopen = () => console.log("WebSocket connected");
+    ws.onopen = () => console.log("WebSocket connected");
     ws.onmessage = (event) => {
       try {
         const update = JSON.parse(event.data);
         if (!update.node?.longitude || !update.node?.latitude) return;
         setUpdates(prev => [update.node, ...prev]);
+        setUpdates(prev => [update.node, ...prev]);
         if (mapRef.current) {
+          const marker = L.circleMarker([update.node.latitude, update.node.longitude], {
+            radius: 8,
+            fillColor: update.node.status === "Active" ? "blue" : "red",
+            color: "#fff",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8,
+          }).bindPopup(`
           const marker = L.circleMarker([update.node.latitude, update.node.longitude], {
             radius: 8,
             fillColor: update.node.status === "Active" ? "blue" : "red",
@@ -136,8 +175,11 @@ export default function NetworkUpdates() {
         }
       } catch (err) {
         console.error("WebSocket error:", err);
+      } catch (err) {
+        console.error("WebSocket error:", err);
       }
     };
+    return () => ws.close();
     return () => ws.close();
   }, []);
 
@@ -154,6 +196,22 @@ export default function NetworkUpdates() {
   };
 
   return (
+    <div className="gradient-bg">
+      <svg>
+        <filter id="goo">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10" result="goo" />
+          <feBlend in="SourceGraphic" in2="goo" />
+        </filter>
+      </svg>
+
+      <div className="gradients-container">
+        <div className="g1"></div>
+        <div className="g2"></div>
+        <div className="g3"></div>
+        <div className="g4"></div>
+        <div className="g5"></div>
+        <div className="interactive"></div>
     <div className="gradient-bg">
       <svg>
         <filter id="goo">
