@@ -201,13 +201,6 @@ class NetworkManager:
             path_target = int.from_bytes(payload[index+2:index+4], 'big')
             index += 4
 
-            if (path_origin not in self.node_dict or
-                path_target not in self.node_dict or
-                self.node_dict[path_origin].status != Node_Status.Active or
-                self.node_dict[path_target].status != Node_Status.Active):
-                self.log("WARNING", f"Ignoring invalid DF path {i}: 0x{path_origin:04X} -> 0x{path_target:04X} (node(s) missing or inactive)")
-                continue
-
             self.log("DFGET", f"Path {i}: 0x{path_origin:04X} -> 0x{path_target:04X}")
             self.df.append({ "origin": path_origin, "target": path_target })
 
