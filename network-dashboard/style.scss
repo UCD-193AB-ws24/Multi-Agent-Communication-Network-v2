@@ -1,225 +1,49 @@
-html, body {
-    font-family: 'Dongle', sans-serif;
-    margin: 0;
-    padding: 0;
-  }
-  
-  :root {
-    --color-bg1: #0a1e3a;
-    --color-bg2: #102a47;
-    --color1: 50, 130, 255;
-    --color2: 70, 160, 255;
-    --color3: 90, 190, 255;
-    --color4: 30, 100, 200;
-    --color5: 10, 70, 180;
-    --color-interactive: 80, 150, 255;
-    --circle-size: 70%;
-    --blending: lighten;
-  }
-  
-  .gradient-bg {
-    width: 100vw;
-    height: 100vh;
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(40deg, var(--color-bg1), var(--color-bg2));
-    z-index: 0;
-  }
-  
-  svg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 0;
-    z-index: 0;
-  }
-  
-  .gradients-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    filter: url(#goo) blur(40px);
-    z-index: 1;
-  }
-  
-  .g1, .g2, .g3, .g4, .g5, .interactive {
-    position: absolute;
-    mix-blend-mode: var(--blending);
-    opacity: 0.4;
-    z-index: 1;
-  }
-  
-  .g1 {
-    background: radial-gradient(circle at center, rgba(var(--color1), 0.8) 0, rgba(var(--color1), 0) 50%);
-    width: var(--circle-size);
-    height: var(--circle-size);
-    top: calc(50% - var(--circle-size) / 2);
-    left: calc(50% - var(--circle-size) / 2);
-    transform-origin: center center;
-    animation: moveVertical 30s ease infinite;
-  }
-  
-  .g2 {
-    background: radial-gradient(circle at center, rgba(var(--color2), 0.8) 0, rgba(var(--color2), 0) 50%);
-    width: var(--circle-size);
-    height: var(--circle-size);
-    top: calc(50% - var(--circle-size) / 2);
-    left: calc(50% - var(--circle-size) / 2);
-    transform-origin: calc(50% - 400px);
-    animation: moveInCircle 20s reverse infinite;
-  }
-  
-  .g3 {
-    background: radial-gradient(circle at center, rgba(var(--color3), 0.8) 0, rgba(var(--color3), 0) 50%);
-    width: var(--circle-size);
-    height: var(--circle-size);
-    top: calc(50% - var(--circle-size) / 2 + 200px);
-    left: calc(50% - var(--circle-size) / 2 - 500px);
-    transform-origin: calc(50% + 400px);
-    animation: moveInCircle 40s linear infinite;
-  }
-  
-  .g4 {
-    background: radial-gradient(circle at center, rgba(var(--color4), 0.8) 0, rgba(var(--color4), 0) 50%);
-    width: var(--circle-size);
-    height: var(--circle-size);
-    top: calc(50% - var(--circle-size) / 2);
-    left: calc(50% - var(--circle-size) / 2);
-    transform-origin: calc(50% - 200px);
-    animation: moveHorizontal 40s ease infinite;
-  }
-  
-  .g5 {
-    background: radial-gradient(circle at center, rgba(var(--color5), 0.8) 0, rgba(var(--color5), 0) 50%);
-    width: calc(var(--circle-size) * 2);
-    height: calc(var(--circle-size) * 2);
-    top: calc(50% - var(--circle-size));
-    left: calc(50% - var(--circle-size));
-    transform-origin: calc(50% - 800px) calc(50% + 200px);
-    animation: moveInCircle 20s ease infinite;
-  }
-  
-  .interactive {
-    background: radial-gradient(circle at center, rgba(var(--color-interactive), 0.8) 0, rgba(var(--color-interactive), 0) 50%);
-    width: 100%;
-    height: 100%;
-    top: -50%;
-    left: -50%;
-  }
-  
-  @keyframes moveInCircle {
-    0% { transform: rotate(0deg); }
-    50% { transform: rotate(180deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  @keyframes moveVertical {
-    0% { transform: translateY(-50%); }
-    50% { transform: translateY(50%); }
-    100% { transform: translateY(-50%); }
-  }
-  
-  @keyframes moveHorizontal {
-    0% { transform: translateX(-50%) translateY(-10%); }
-    50% { transform: translateX(50%) translateY(10%); }
-    100% { transform: translateX(-50%) translateY(-10%); }
-  }
-  
-  .sidebar {
-    background-color: #001f3f;
-    padding: 20px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 200px;
-    display: none;
-    flex-direction: column;
-    gap: 20px;
-    z-index: 10;
-  }
-  
-  @media (min-width: 750px) {
-    .sidebar {
-      display: flex;
-    }
-    .dashboard-title.with-sidebar-offset,.node-update-title{
-        margin-left: 220px;
-      }
-    
-  }
-  
-  .sidebar-button {
-    background-color: #0055aa;
-    color: white;
-    border: none;
-    padding: 12px 16px;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background-color 0.3s ease;
-  }
-  
-  .sidebar-button:hover {
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 5 !important;
+}
+
+.map-container {
+  position: relative;
+  min-height: 400px;
+  flex: 1;
+  border: 2px solid white;
+  background-color: #f0f0f0;
+  z-index: 5;
+}
+
+.ui-wrapper {
+  position: relative;
+  z-index: 10;
+  padding-left: 220px;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 100vh;
+  background-color: #001f3f;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 15px;
+  z-index: 20;
+}
+
+.sidebar-button {
+  background-color: #0055aa;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+
+  &:hover {
     background-color: #0077cc;
   }
-  
-  .ui-wrapper.with-sidebar-offset {
-    position: relative;
-    z-index: 10;
-    padding-left: 220px;
-  }
-  
-  .dashboard-title {
-    font-size: 3rem;
-    font-weight: bold;
-    color: white;
-    margin-top: 20px;
-  }
-  
-  .dashboard-content {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
-    width: 100%;
-  }
-  
-  .updates-column {
-    flex: 1;
-    min-width: 300px;
-    max-width: 600px;
-  }
-  
-  .section-title {
-    font-size: 2rem;
-    color: white;
-  }
-  
-  .node-card {
-    background: white;
-    color: black;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-  }
-  
-  .map-container {
-    flex: 1;
-    min-height: 400px;
-    min-width: 300px;
-    max-width: 800px;
-    background-color: #f0f0f0;
-    border: 2px solid white;
-  }
-  
-  .map-loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    color: #666;
-  }
+}

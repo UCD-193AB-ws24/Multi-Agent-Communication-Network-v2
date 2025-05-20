@@ -7,7 +7,7 @@ from websocket_server import WebsocketServer
 PACKET_SIZE = 1024
 SERVER_SOCKET_PORT = 5001
 WEBSOCKET_PORT = 7654
-SERIAL_PORT = "/dev/tty.usbserial-1440"
+SERIAL_PORT = "/dev/tty.usbserial-110"
 BAUD_RATE = 115200
 
 async def main():
