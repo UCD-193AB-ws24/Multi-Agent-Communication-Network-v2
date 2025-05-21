@@ -211,6 +211,7 @@ class NetworkManager:
         self.log("INFO", f"Node-{node.address:04X}: ")
         self.log("INFO", f"  UUID: {node.uuid.hex()}")
         self.log("INFO", f"  Status: {node.status.name}")
+        self.log("INFO", f"  GPS: {node.gps[0]:.6f}, {node.gps[1]:.6f}" if node.gps else "  GPS: (not available)")
         if []:
             self.log("INFO", "  Direct Paths:")
             for path in []:
