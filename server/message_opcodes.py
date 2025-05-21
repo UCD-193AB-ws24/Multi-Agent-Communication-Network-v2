@@ -27,7 +27,7 @@ OPCODES = {
     "Root Reset": b'\x03',
 
     # Direct Forwarding Table Info (Opcode: 0x04)
-    # Sent in response to the 'DFINFO' command from the host.
+    # Sent in response to the 'GETDF' command from the host.
     # Contains all DF paths stored by the root.
     # Payload format:
     #   [0x04][path_count][origin][target]...[origin][target]
@@ -36,5 +36,7 @@ OPCODES = {
     #       - target (2 bytes): Destination node address (big-endian)
     # Sent in batches of up to 40 paths.
     "DF Info": b'\x04',
+    
+    "Data": b'\x05',
 }
 

@@ -7,7 +7,7 @@ from websocket_server import WebsocketServer
 PACKET_SIZE = 1024
 SERVER_SOCKET_PORT = 5001
 WEBSOCKET_PORT = 7654
-SERIAL_PORT = "/dev/tty.usbserial-1430"
+SERIAL_PORT = "/dev/tty.usbserial-1410"
 BAUD_RATE = 115200
 
 async def main():
@@ -25,8 +25,25 @@ async def main():
     uart_manager.run()
     socket_manager.run()
     websocket_server.run()
-
+    
     await asyncio.sleep(3)
+    
+    # while True:
+    #     socket_command = b"NINFO"
+    #     network_manager.callback_socket(socket_command)
+    #     await asyncio.sleep(10)
+        
+    #     socket_command = b"GETDF"
+    #     network_manager.callback_socket(socket_command)
+    #     await asyncio.sleep(20)
+        
+    #     # PRINTING NETWORK INFO
+    #     print("\n[TEST] Printing network info...")
+    #     network_manager.print_all_nodes()
+    #     network_manager.print_all_direct_paths()
+        
+    socket_command = b"NINFO"
+    network_manager.callback_socket(socket_command)
 
     # NET INFO (0x01)
     print("\n[TEST] Simulating NET INFO (0x01) batch 1/3...")
@@ -143,6 +160,8 @@ async def main():
     network_manager.print_all_nodes()
     network_manager.print_all_direct_paths()
     
+    await asyncio.sleep(3)
+    
     # SEND- and BCAST commands
     print("\n[TEST] Simulating program sending SEND- command to node 0x0005 with message 'hello'")
     socket_command = b"SEND-" + b"\x00\x05" + b"hello"
@@ -157,7 +176,44 @@ async def main():
     socket_command = b"NINFO"
     network_manager.callback_socket(socket_command)
     
+    await asyncio.sleep(3)
+    
+    # PRINTING NETWORK INFO
+    print("\n[TEST] Printing network info...")
+    network_manager.print_all_nodes()
+    network_manager.print_all_direct_paths()
+    
+    await asyncio.sleep(3)
+    
+    # PRINTING DF INFO
+    print("\n[TEST] Simulating program sending GETDF command to server")
+    socket_command = b"GETDF"
+    network_manager.callback_socket(socket_command)
+    
     await asyncio.sleep(10)
+    
+    # PRINTING NETWORK INFO
+    print("\n[TEST] Printing network info...")
+    network_manager.print_all_nodes()
+    network_manager.print_all_direct_paths()
+    
+    await asyncio.sleep(3)
+    
+    print("\n[TEST] Simulating Data Opcode (0x44, 'D') GPS update...")
+    uart_data = b'\x12\x34' + b'D' + b'\x01' + b'\x01' + b't$\xfe\x90\x96\x00'
+    network_manager.callback_uart(uart_data)
+    
+    await asyncio.sleep(3)
+    
+    # Simulating GPS Data (0x05)
+    uart_data = (
+        b'\x00\x01' + b'\x05' + b'\x01' + b'\x05' +
+        b'\x8F\xC2\xF5\x28\x5C\x8B\x43\x40' +     # lat = 38.541 (little endian)
+        b'\x9A\x99\x99\x99\x99\x99\x5E\xC0'       # lon = -121.775 (little endian)
+    )
+
+    print("\n[TEST] Simulating GPS Data (Opcode 0x05) from 0x0001")
+    network_manager.callback_uart(uart_data)
 
 if __name__ == "__main__":
     try:
