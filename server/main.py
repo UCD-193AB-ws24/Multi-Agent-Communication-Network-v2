@@ -11,7 +11,7 @@ import os
 PACKET_SIZE = 1024
 SERVER_SOCKET_PORT = 5001
 WEBSOCKET_PORT = 7654
-SERIAL_PORT = "/dev/tty.usbserial-1430"
+SERIAL_PORT = "/dev/tty.usbserial-120"
 BAUD_RATE = 115200
 FLASK_PORT = 5002  # Flask shutdown server port
 

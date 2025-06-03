@@ -47,3 +47,101 @@
     background-color: #0077cc;
   }
 }
+
+.dashboard-title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-top: 20px;
+  margin-left: 220px;
+  color: white;
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: row;
+  padding: 20px;
+  gap: 20px;
+}
+
+.updates-column {
+  max-width: 300px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.node-card {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  color: white;
+}
+
+@media (max-width: 760px) {
+  html, body, .gradient-bg, .ui-wrapper {
+    height: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .ui-wrapper {
+    width: 100%;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .dashboard-title {
+    margin-left: 0 !important;
+    margin-bottom: 1rem;
+  }
+
+  .map-container {
+    width: 100%;
+    min-height: 300px;
+    margin-bottom: 1rem;
+  }
+
+  .sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    background-color: transparent;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0;
+  }
+
+  .sidebar-button {
+    width: 100%;
+    max-width: 300px;
+    text-align: center;
+  }
+
+  .dashboard-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    flex-grow: 0;
+    justify-content: flex-start; /* Remove pushing it down */
+    margin-top: 1rem; /* Optional: small spacing */
+  }
+
+  .updates-column {
+    width: 100%;
+    max-width: 400px;
+    margin-top: 0.5rem; /* Reduce gap */
+  }
+
+  .node-card {
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+}
+

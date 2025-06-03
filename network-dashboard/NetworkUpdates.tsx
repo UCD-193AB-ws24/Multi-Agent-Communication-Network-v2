@@ -133,9 +133,21 @@ export default function NetworkUpdates() {
               data: node.data || {},
             };
 
-            setUpdates(prev => [mappedNode, ...prev]);
+            setUpdates(prev => {
+              const filtered = prev.filter(n => n.uuid !== mappedNode.uuid);
+              return [mappedNode, ...filtered];
+            });
 
             if (mapRef.current && hasGPS) {
+              markersRef.current.eachLayer(layer => {
+                if (layer instanceof L.CircleMarker) {
+                  const popup = layer.getPopup()?.getContent();
+                  if (popup && popup.includes(mappedNode.uuid)) {
+                    markersRef.current.removeLayer(layer);
+                  }
+                }
+              });
+
               const marker = L.circleMarker([mappedNode.latitude, mappedNode.longitude], {
                 radius: 8,
                 fillColor: mappedNode.status === "Active" ? "blue" : "red",
@@ -149,6 +161,7 @@ export default function NetworkUpdates() {
                 Status: ${mappedNode.status}<br>
                 Data: ${JSON.stringify(mappedNode.data)}
               `);
+
               markersRef.current.addLayer(marker);
             }
           });
@@ -195,14 +208,18 @@ export default function NetworkUpdates() {
         <div className="interactive"></div>
       </div>
 
-      <div className="ui-wrapper with-sidebar-offset">
-        <div className="sidebar">
+      <div className="ui-wrapper">
+        <h1 className="dashboard-title">Network Dashboard</h1>
+
+        <div className="map-container" ref={mapContainerRef}>
+          {!mapLoaded && <div className="map-loading">Loading map...</div>}
+        </div>
+
+        <div className="sidebar mobile-sidebar">
           <label htmlFor="file-upload" className="sidebar-button">Upload .tif map</label>
           <input id="file-upload" type="file" accept=".tif,.tiff" onChange={handleFileChange} style={{ display: "none" }} />
           <button className="sidebar-button" onClick={terminateServer}>Terminate Server</button>
         </div>
-
-        <h1 className="dashboard-title with-sidebar-offset">Network Dashboard</h1>
 
         <div className="dashboard-content">
           <div className="updates-column">
@@ -214,10 +231,6 @@ export default function NetworkUpdates() {
                 Status: {node.status}
               </div>
             ))}
-          </div>
-
-          <div ref={mapContainerRef} className="map-container leaflet-container">
-            {!mapLoaded && <div className="map-loading">Loading map...</div>}
           </div>
         </div>
       </div>
